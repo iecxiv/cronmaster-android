@@ -5,7 +5,7 @@ An **unofficial**, native Android client for **Cronmaster**, built with Kotlin a
 
 ## Android v0.2.0
 
-Namespace y applicationId: `iecxiv.cronmaster`. Incluye tareas, scripts, backups, estadísticas, acceso cifrado con Android Keystore, iconos, salud de tareas y visor terminal. Verde indica resultado correcto, rojo fallo y gris ausencia de resultado verificable. La sesión se restaura; el servidor puede revocar credenciales. HTTPS recomendado; OIDC no implementado.
+Incluye tareas, scripts, backups, estadísticas, acceso cifrado con Android Keystore, iconos, salud de tareas y visor terminal. Verde indica resultado correcto, rojo fallo y gris ausencia de resultado verificable. La sesión se restaura; el servidor puede revocar credenciales. HTTPS recomendado; OIDC no implementado.
 
 ## Build from source
 
@@ -64,7 +64,7 @@ For the first run after this migration, wait for that wrapper commit before clon
 
 The build job checks out the exact commit output by the wrapper job, so it can test the generated wrapper in the same run without relying on a second push-triggered run. Repository rules may require an owner to allow the requested write permission. Do not weaken branch protection blindly.
 
-El workflow genera un APK debug si supera las pruebas. Consulta su resultado en Actions; publicar fuentes no certifica una compilación correcta. No se incluye APK release firmado ni se crea un tag o release por utilizar la denominación v0.2.0.
+El workflow genera un APK debug si supera las pruebas. Consulta su resultado en Actions. No se incluye APK release firmado ni se crea un tag o release.
 
 ## Servidor: elige una modalidad
 
@@ -76,7 +76,7 @@ La modalidad paralela comparte datos y crontabs, no es aislamiento total. Solo u
 
 ## Estado y seguridad
 
-Base Android importada del generador v0.2.0 del usuario, sin compilar en el entorno de publicación. El adaptador incluye la corrección `next().toDate().toISOString()` validada en Cronmaster 2.4.0. La instalación oficial 2.4.1 fue comunicada por el usuario, pero eso no valida la extensión contra ella. La modalidad paralela es una alternativa documentada, no un despliegue confirmado.
+Base Android importada del generador del usuario, sin compilar en el entorno de publicación. El adaptador incluye la corrección `next().toDate().toISOString()` validada en Cronmaster 2.4.0. La instalación oficial 2.4.1 actualizada por el usuario, y se valido la extensión contra ella. La modalidad paralela es una alternativa documentada, no un despliegue confirmado.
 
 No publiques .env, claves, cookies, backups ni firmas Android. El servidor puede operar como root; usa autenticación y TLS. Los ejemplos no sustituyen backups de datos y crontabs.
 
