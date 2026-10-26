@@ -22,6 +22,12 @@ android {
     kotlinOptions { jvmTarget = "17" }
 }
 
+kotlin {
+    compilerOptions {
+        optIn.add("androidx.compose.foundation.layout.ExperimentalLayoutApi")
+    }
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
