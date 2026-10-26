@@ -20,6 +20,16 @@ Open the project in an Android Studio version compatible with Android Gradle Plu
 
 Select JDK 17 as the Gradle JDK and configure command-line JAVA_HOME consistently. Java/Kotlin source and bytecode compatibility are configured as Java 17; these settings are separate from the JDK used to run Gradle.
 
+To select JDK 17 in Android Studio:
+
+1. Open `File → Settings` on Windows/Linux, or `Android Studio → Settings` on macOS.
+2. Go to `Build, Execution, Deployment → Build Tools → Gradle`.
+3. In the `Gradle JDK` dropdown, select an installed JDK 17.
+4. If JDK 17 is not available, choose `Download JDK…`, set the version to `17` and select Eclipse Temurin if listed, or another available JDK 17 distribution.
+5. Ensure the selected Gradle JDK is the JDK 17 installation, not `JetBrains Runtime 25.0.3`.
+6. Click `Apply → OK`.
+7. Run `File → Sync Project with Gradle Files`.
+
 Build and run on an Android device or emulator using API 26 or newer. For command-line builds, configure the Android SDK location using ANDROID_HOME or an uncommitted local.properties file containing sdk.dir.
 
 To build a debug APK from the repository root:
