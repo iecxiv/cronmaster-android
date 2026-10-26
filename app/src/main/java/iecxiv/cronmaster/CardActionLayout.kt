@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -23,17 +24,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 internal val LocalCardActionLabels = staticCompositionLocalOf { false }
+private val LocalCardActionWidth = staticCompositionLocalOf { 44.dp }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun CardActions(content: @Composable FlowRowScope.() -> Unit) {
-    CompositionLocalProvider(LocalCardActionLabels provides true) {
-        FlowRow(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            content = content
-        )
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+        val density = LocalDensity.current
+        // Round down in physical pixels so eight slots cannot wrap due to rounding.
+        val slotWidth = with(density) {
+            (constraints.maxWidth / 8).coerceAtLeast(1).toDp()
+        }.coerceAtMost(44.dp)
+        CompositionLocalProvider(
+            LocalCardActionLabels provides true,
+            LocalCardActionWidth provides slotWidth
+        ) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                maxItemsInEachRow = 8,
+                content = content
+            )
+        }
     }
 }
 
@@ -70,21 +83,21 @@ internal fun CompactCardAction(
     val color = if (enabled) tint else tint.copy(alpha = tint.alpha * 0.35f)
     Column(
         modifier = Modifier
-            .width(64.dp)
-            .heightIn(min = 64.dp)
+            .width(LocalCardActionWidth.current)
+            .heightIn(min = 52.dp)
             .clip(MaterialTheme.shapes.small)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .semantics(mergeDescendants = true) { contentDescription = label }
-            .padding(horizontal = 2.dp, vertical = 6.dp),
+            .padding(horizontal = 0.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.height(4.dp))
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.height(2.dp))
         Text(
             text = compactActionLabel(label),
             color = color,
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp),
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, lineHeight = 10.sp),
             textAlign = TextAlign.Center,
             minLines = 2,
             maxLines = 2,
