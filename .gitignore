@@ -4,3 +4,8 @@ local.properties
 **/build/
 *.jks
 *.keystore
+.env
+.env.*
+!.env.example
+*.log
+backups/
