@@ -50,10 +50,15 @@ private val destinations=listOf(
     Destination("Backups",Icons.Default.Backup),Destination("Sistema",Icons.Default.Dns),Destination("Ajustes",Icons.Default.Settings)
 )
 @Composable private fun ActionIcon(icon: ImageVector,label: String,enabled: Boolean=true,tint: Color=LocalContentColor.current,onClick: () -> Unit) {
-    IconButton(onClick=onClick,enabled=enabled) { Icon(icon,contentDescription=label,tint=if(enabled) tint else tint.copy(alpha=.35f)) }
+    if (LocalCardActionLabels.current) {
+        CompactCardAction(icon, label, enabled, tint, onClick)
+    } else {
+        IconButton(onClick=onClick,enabled=enabled) { Icon(icon,contentDescription=label,tint=if(enabled) tint else tint.copy(alpha=.35f)) }
+    }
 }
-@Composable private fun Actions(content: @Composable RowScope.() -> Unit) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),verticalAlignment=Alignment.CenterVertically,content=content)
+@OptIn(ExperimentalLayoutApi::class)
+@Composable private fun Actions(content: @Composable FlowRowScope.() -> Unit) {
+    CardActions(content)
 }
 @Composable private fun WideModal(title: String,close: () -> Unit,content: @Composable ColumnScope.() -> Unit) {
     Dialog(onDismissRequest=close,properties=DialogProperties(usePlatformDefaultWidth=false)) {
@@ -204,7 +209,7 @@ private val destinations=listOf(
                                             vm.action("job.run",args) { result -> val run=result.optString("runId"); if(run.isNotBlank()) runId=run else output=result.optString("output",result.optString("message")) }
                                         } }
                                         ActionIcon(Icons.Default.Edit,"Editar tarea",enabled) { openJob(job) }
-                                        ActionIcon(if(paused) Icons.Default.PlayArrow else Icons.Default.Pause,"Pausar o reanudar",enabled) { confirm("Cambiar estado",job.optString("comment",id)) { vm.action(if(paused) "job.resume" else "job.pause",args) } }
+                                        ActionIcon(if(paused) Icons.Default.PlayArrow else Icons.Default.Pause,if(paused) "Reanudar tarea" else "Pausar tarea",enabled) { confirm("Cambiar estado",job.optString("comment",id)) { vm.action(if(paused) "job.resume" else "job.pause",args) } }
                                         ActionIcon(Icons.Default.History,"Historial de logs",enabled) { vm.work { history=LogHistory(id,job.optString("comment",id),vm.request("logs",args).rows()) } }
                                         ActionIcon(Icons.Default.ContentCopy,"Clonar tarea",enabled) {
                                             editor=Editor("Clonar tarea",obj("comment" to (job.optString("comment")+" (copia)"))) { data -> data.put("id",id); vm.action("job.clone",data) { editor=null } }
