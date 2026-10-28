@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -55,7 +56,9 @@ internal fun CronmasterAppBar(
     serverCount: Int = 1,
     serverName: String? = null,
     onSwitchServer: (() -> Unit)? = null,
-    switchEnabled: Boolean = true
+    switchEnabled: Boolean = true,
+    nonZeroFirst: Boolean = false,
+    onNonZeroFirstChange: ((Boolean) -> Unit)? = null
 ) {
     val mesh = LocalThemeStyle.current == ThemeStyle.MESHFABRIC
     val showServerActions = section != "Ajustes"
@@ -91,6 +94,11 @@ internal fun CronmasterAppBar(
             }
         },
         actions = {
+            if (section == "Tareas" && onNonZeroFirstChange != null) {
+                IconToggleButton(checked = nonZeroFirst, onCheckedChange = onNonZeroFirstChange) {
+                    Icon(Icons.Default.FilterAlt, "Priorizar tareas sin exit 0")
+                }
+            }
             if (showServerActions && serverCount > 1 && onSwitchServer != null) IconButton(onClick = onSwitchServer, enabled = switchEnabled) {
                 Icon(Icons.Default.SwapHoriz, "Cambiar servidor")
             }
