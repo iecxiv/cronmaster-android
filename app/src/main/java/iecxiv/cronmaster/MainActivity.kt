@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -188,6 +189,7 @@ private val destinations=listOf(
                 Icon(Icons.Default.Terminal,null,modifier=Modifier.size(56.dp),tint=MaterialTheme.colorScheme.primary)
                 Text("Tu servidor, a un toque",style=MaterialTheme.typography.headlineMedium)
                 Text("Identifícate una vez. El acceso se guarda cifrado en este dispositivo.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedTextField(vm.sessionName,{if(it.length<=64) vm.sessionName=it},label={Text(stringResource(R.string.session_name_optional))},singleLine=true,enabled=enabled,modifier=Modifier.fillMaxWidth())
                 Field("URL del servidor",vm.url,onChange={vm.url=it})
                 Field("Contraseña",vm.password,true) { vm.password=it }
                 Field("API key (alternativa)",vm.token,true) { vm.token=it }
