@@ -36,9 +36,12 @@ class MainActivity: ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val vm: MainViewModel=viewModel()
-            val colors=if(vm.dark) darkColorScheme(primary=Color(0xFF77D8C7),secondary=Color(0xFFA8C7FA),background=Color(0xFF0C1320),surface=Color(0xFF121C2C))
-                else lightColorScheme(primary=Color(0xFF006B5D),secondary=Color(0xFF385F98),background=Color(0xFFF4F7FB),surface=Color.White)
-            MaterialTheme(colorScheme=colors) { Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) { key(vm.sessionEpoch) { App(vm) } } }
+            val themes: ThemeStyleViewModel=viewModel()
+            CronmasterTheme(style=themes.style,dark=vm.dark) {
+                Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) {
+                    key(vm.sessionEpoch) { App(vm) }
+                }
+            }
         }
     }
 }
@@ -104,6 +107,7 @@ private val destinations=listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun App(vm: MainViewModel) {
     val appearance: AppAppearanceViewModel=viewModel()
+    val themes: ThemeStyleViewModel=viewModel()
     ApplyAppearanceToTask(appearance)
     val owner=LocalLifecycleOwner.current
     val clipboard=LocalClipboardManager.current
@@ -207,7 +211,7 @@ private val destinations=listOf(
                             if(visible.isEmpty()) item { Text("No hay tareas que mostrar",modifier=Modifier.padding(16.dp)) }
                             items(visible,key={it.getString("id")}) { job ->
                                 val id=job.getString("id"); val args=obj("id" to id); val paused=job.optBoolean("paused",job.optBoolean("isPaused"))
-                                Card(Modifier.fillMaxWidth(),shape=MaterialTheme.shapes.large) { Column(Modifier.padding(16.dp)) {
+                                CronmasterCard(Modifier.fillMaxWidth(),shape=MaterialTheme.shapes.large) { Column(Modifier.padding(16.dp)) {
                                     Row(verticalAlignment=Alignment.CenterVertically) {
                                         Column(Modifier.weight(1f)) {
                                             Text(job.optString("comment").ifBlank { id },style=MaterialTheme.typography.titleMedium)
@@ -246,7 +250,7 @@ private val destinations=listOf(
                         if(vm.scripts.isEmpty()) item { Text("Crea tu primer script con el botón +") }
                         items(vm.scripts,key={it.getString("id")}) { script ->
                             val id=script.getString("id")
-                            Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+                            CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                                 Text(script.optString("name"),style=MaterialTheme.typography.titleMedium)
                                 Text(script.optString("description"),style=MaterialTheme.typography.bodyMedium)
                                 Text(script.optString("filename"),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
@@ -267,7 +271,7 @@ private val destinations=listOf(
                         }
                         LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=16.dp)) {
                             if(vm.backups.isEmpty()) item { Text("No hay backups cargados. Pulsa el icono de actualizar.") }
-                            items(vm.backups) { b -> Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+                            items(vm.backups) { b -> CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                                 Text(b.optJSONObject("job")?.optString("comment").orEmpty().ifBlank { b.optString("filename") },style=MaterialTheme.typography.titleMedium)
                                 Text(b.optString("filename"),style=MaterialTheme.typography.bodySmall)
                                 Text(b.optString("backedUpAt"),style=MaterialTheme.typography.labelSmall)
@@ -279,7 +283,7 @@ private val destinations=listOf(
                         }
                     }
                     3 -> LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=16.dp)) {
-                        items(vm.stats.keys().asSequence().toList()) { key -> Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+                        items(vm.stats.keys().asSequence().toList()) { key -> CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                             Text(key.replaceFirstChar { it.uppercase() },style=MaterialTheme.typography.titleMedium)
                             val value=vm.stats.opt(key)
                             if(value is JSONObject) StatTree(value) else Text(value.toString(),style=MaterialTheme.typography.headlineSmall)
@@ -287,8 +291,9 @@ private val destinations=listOf(
                     }
                     4 -> Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
                         ServerSettingsCard(vm) { addServerDialog=true }
+                        ThemeStyleSettings(themes)
                         AppearanceSettings(appearance)
-                        Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                        CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                             Text("Sesión activa",style=MaterialTheme.typography.titleMedium)
                             Text(vm.url,style=MaterialTheme.typography.bodySmall)
                             Text("Acceso cifrado · Android Keystore",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary)
@@ -297,7 +302,7 @@ private val destinations=listOf(
                                 ActionIcon(Icons.Default.Logout,"Cerrar sesión",enabled,MaterialTheme.colorScheme.error) { confirm("Cerrar sesión","Se eliminará el acceso guardado de ${vm.activeServerName.ifBlank { vm.url }}. Los demás servidores se conservarán.") { editor=null; history=null; output=null; runId=null; vm.logout() } }
                             }
                         } }
-                        Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+                        CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                             Row(verticalAlignment=Alignment.CenterVertically) { Icon(Icons.Default.DarkMode,null); Text("  Tema oscuro",modifier=Modifier.weight(1f)); Switch(vm.dark,{vm.dark=it;vm.saveAppearance()}) }
                             Row(verticalAlignment=Alignment.CenterVertically) { Text("Vista mínima",modifier=Modifier.weight(1f)); Switch(vm.minimal,{vm.minimal=it;vm.saveAppearance()}) }
                             Row(verticalAlignment=Alignment.CenterVertically) { Text("Horarios legibles",modifier=Modifier.weight(1f)); Switch(vm.human,{vm.human=it;vm.saveAppearance()}) }
@@ -345,7 +350,7 @@ private val destinations=listOf(
     history?.let { h -> WideModal("Logs · ${h.name}",{history=null}) {
         Actions { ActionIcon(Icons.Default.DeleteSweep,"Eliminar todos los logs",enabled,MaterialTheme.colorScheme.error) { confirm("Eliminar todos los logs",h.id) { vm.action("logs.deleteAll",obj("id" to h.id)) { history=null } } } }
         if(h.rows.isEmpty()) Text("No hay logs guardados")
-        h.rows.forEach { log -> Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
+        h.rows.forEach { log -> CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
             Text(log.optString("filename"),style=MaterialTheme.typography.titleSmall)
             Text("${log.optLong("size")} bytes · exit ${if(log.isNull("exitCode")) "—" else log.optString("exitCode","—")}",style=MaterialTheme.typography.bodySmall)
             val args=obj("id" to h.id,"filename" to log.getString("filename"))
