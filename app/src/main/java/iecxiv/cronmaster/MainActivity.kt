@@ -157,7 +157,8 @@ private val destinations=listOf(
             section=if(appearanceDialog) "Ajustes" else if(vm.connected) destinations[tab].title else "Acceso",
             onOpenSettings={openSettings()},
             onRefresh=if(vm.connected) { { vm.work { vm.refresh(); if(tab==2) vm.backups=vm.request("backups").rows(); vm.message="Datos actualizados" } } } else null,
-            refreshEnabled=enabled
+            refreshEnabled=enabled,
+            connectionStatus=vm.connectionStatus
         ) },
         bottomBar={ if(vm.connected) NavigationBar {
             destinations.take(4).forEachIndexed { index,d -> NavigationBarItem(selected=tab==index,onClick={tab=index; lastTab=index; if(index==2) vm.loadBackups()},icon={Icon(d.icon,d.title)},label=null) }
@@ -186,10 +187,6 @@ private val destinations=listOf(
                 TextButton(onClick={confirm("Borrar acceso local","Se eliminarán las credenciales guardadas en este dispositivo.") { vm.logout() }},enabled=enabled) { Text("Borrar acceso guardado") }
             }
             else {
-                Row(verticalAlignment=Alignment.CenterVertically) {
-                    Box(Modifier.size(6.dp).background(MaterialTheme.colorScheme.primary,CircleShape))
-                    Spacer(Modifier.width(6.dp)); Text(vm.eventState,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                }
                 if(vm.wrapperModified) Text("Wrapper de logs modificado en el servidor",color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)
                 when(tab) {
                     0 -> {
@@ -298,8 +295,8 @@ private val destinations=listOf(
                             Row(verticalAlignment=Alignment.CenterVertically) { Text("Vista mínima",modifier=Modifier.weight(1f)); Switch(vm.minimal,{vm.minimal=it;vm.saveAppearance()}) }
                             Row(verticalAlignment=Alignment.CenterVertically) { Text("Horarios legibles",modifier=Modifier.weight(1f)); Switch(vm.human,{vm.human=it;vm.saveAppearance()}) }
                         } }
-                        Text("Verde: última ejecución correcta. Rojo: fallo. Gris: sin resultado verificable o logging desactivado. La pausa se muestra por separado.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("La sesión se restaura al abrir la app. El servidor puede revocar el acceso; la app no puede impedirlo. OIDC no está implementado.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        SettingsInformationCard()
+                        SettingsVersionFooter()
                     }
                 }
             }
