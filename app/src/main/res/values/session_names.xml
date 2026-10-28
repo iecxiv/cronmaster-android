@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="session_name_optional">Nombre de la sesión (opcional)</string>
+    <string name="edit_session_name">Editar nombre de la sesión</string>
+    <string name="edit_session_name_description">Editar nombre de %1$s</string>
+    <string name="session_names_hint">Puedes cambiar los nombres sin cerrar las sesiones ni modificar sus credenciales. Si dejas el nombre vacío se mostrará la URL.</string>
+    <string name="session_name_saved">Nombre de la sesión guardado</string>
+</resources>
