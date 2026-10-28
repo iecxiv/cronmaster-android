@@ -98,7 +98,7 @@ private val destinations=listOf(
     }
 }
 @Composable private fun SystemStatHeading(title: String,large: Boolean=false) {
-    val key=title.lowercase(java.util.Locale.ROOT)
+    val key=title.trim().lowercase(java.util.Locale.ROOT)
     val icon=when {
         "cpu" in key || "processor" in key || "load" in key -> Icons.Default.Speed
         "mem" in key || "ram" in key || "swap" in key -> Icons.Default.Memory
@@ -108,21 +108,29 @@ private val destinations=listOf(
         "system" in key || "host" in key || key == "os" -> Icons.Default.Dns
         else -> Icons.Default.Info
     }
-    Row(Modifier.fillMaxWidth().padding(vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-        Surface(shape=CircleShape,color=MaterialTheme.colorScheme.primaryContainer) {
-            Icon(icon,null,Modifier.padding(8.dp).size(if(large) 22.dp else 18.dp),tint=MaterialTheme.colorScheme.onPrimaryContainer)
-        }
-        Text(title.replaceFirstChar { it.uppercase() },modifier=Modifier.weight(1f),style=if(large) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleSmall,softWrap=true)
+    Row(Modifier.fillMaxWidth().padding(vertical=2.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+        Icon(icon,null,Modifier.size(if(large) 20.dp else 18.dp),tint=MaterialTheme.colorScheme.primary)
+        Text(title.trim().replaceFirstChar { it.uppercase() },modifier=Modifier.weight(1f),style=if(large) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleSmall,color=MaterialTheme.colorScheme.onSurface,softWrap=true)
+    }
+}
+@Composable private fun SystemStatValue(value: String,modifier: Modifier=Modifier) {
+    SelectionContainer(modifier) {
+        Text(value,modifier=Modifier.fillMaxWidth(),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurface,textAlign=androidx.compose.ui.text.style.TextAlign.End,softWrap=true)
     }
 }
 @Composable private fun StatTree(data: JSONObject,prefix: String="") {
     data.keys().asSequence().toList().forEach { key ->
         val value=data.opt(key)
-        if(value is JSONObject) { SystemStatHeading(prefix+key); StatTree(value,"$prefix  ") }
-        else Row(Modifier.fillMaxWidth().padding(vertical=6.dp),horizontalArrangement=Arrangement.spacedBy(12.dp),verticalAlignment=Alignment.Top) {
-            Text(prefix+key,modifier=Modifier.weight(1f),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,softWrap=true)
-            SelectionContainer(Modifier.weight(2f)) {
-                Text(value.toString(),modifier=Modifier.fillMaxWidth(),style=MaterialTheme.typography.bodyMedium,textAlign=androidx.compose.ui.text.style.TextAlign.End,softWrap=true)
+        if(value is JSONObject) {
+            SystemStatHeading(prefix+key)
+            StatTree(value,"$prefix  ")
+        } else BoxWithConstraints(Modifier.fillMaxWidth().padding(vertical=4.dp)) {
+            val gap=12.dp
+            val labelWidth=((maxWidth-gap).coerceAtLeast(0.dp))/3f
+            val valueWidth=((maxWidth-gap).coerceAtLeast(0.dp))*2f/3f
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(gap),verticalAlignment=Alignment.Top) {
+                Text(prefix+key,modifier=Modifier.width(labelWidth),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,softWrap=true)
+                Box(Modifier.width(valueWidth)) { SystemStatValue(value.toString()) }
             }
         }
     }
@@ -327,14 +335,14 @@ private val destinations=listOf(
                     3 -> LazyColumn(Modifier.weight(1f).padding(top=8.dp),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=16.dp)) {
                         items(vm.stats.keys().asSequence().toList()) { key -> CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                             SystemStatHeading(key,large=true)
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(6.dp))
                             HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(6.dp))
                             val value=vm.stats.opt(key)
-                            if(value is JSONObject) StatTree(value) else Row(Modifier.fillMaxWidth()) {
-                                Spacer(Modifier.weight(1f))
-                                SelectionContainer(Modifier.weight(2f)) {
-                                    Text(value.toString(),modifier=Modifier.fillMaxWidth(),style=MaterialTheme.typography.headlineSmall,textAlign=androidx.compose.ui.text.style.TextAlign.End,softWrap=true)
+                            if(value is JSONObject) StatTree(value) else BoxWithConstraints(Modifier.fillMaxWidth()) {
+                                val valueWidth=maxWidth*2f/3f
+                                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End) {
+                                    Box(Modifier.width(valueWidth)) { SystemStatValue(value.toString()) }
                                 }
                             }
                         } } }
