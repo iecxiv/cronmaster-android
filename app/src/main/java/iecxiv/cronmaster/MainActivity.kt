@@ -97,13 +97,33 @@ private val destinations=listOf(
         Text(state.label,color=color,style=MaterialTheme.typography.labelMedium)
     }
 }
+@Composable private fun SystemStatHeading(title: String,large: Boolean=false) {
+    val key=title.lowercase(java.util.Locale.ROOT)
+    val icon=when {
+        "cpu" in key || "processor" in key || "load" in key -> Icons.Default.Speed
+        "mem" in key || "ram" in key || "swap" in key -> Icons.Default.Memory
+        "disk" in key || "storage" in key || "filesystem" in key -> Icons.Default.Storage
+        "network" in key || "interface" in key -> Icons.Default.NetworkCheck
+        "uptime" in key || "time" in key -> Icons.Default.Schedule
+        "system" in key || "host" in key || key == "os" -> Icons.Default.Dns
+        else -> Icons.Default.Info
+    }
+    Row(Modifier.fillMaxWidth().padding(vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+        Surface(shape=CircleShape,color=MaterialTheme.colorScheme.primaryContainer) {
+            Icon(icon,null,Modifier.padding(8.dp).size(if(large) 22.dp else 18.dp),tint=MaterialTheme.colorScheme.onPrimaryContainer)
+        }
+        Text(title.replaceFirstChar { it.uppercase() },modifier=Modifier.weight(1f),style=if(large) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleSmall,softWrap=true)
+    }
+}
 @Composable private fun StatTree(data: JSONObject,prefix: String="") {
     data.keys().asSequence().toList().forEach { key ->
         val value=data.opt(key)
-        if(value is JSONObject) { Text(prefix+key,style=MaterialTheme.typography.titleSmall); StatTree(value,"$prefix  ") }
-        else Row(Modifier.fillMaxWidth().padding(vertical=4.dp)) {
-            Text(prefix+key,modifier=Modifier.weight(1f),color=MaterialTheme.colorScheme.onSurfaceVariant)
-            SelectionContainer { Text(value.toString(),style=MaterialTheme.typography.bodyMedium) }
+        if(value is JSONObject) { SystemStatHeading(prefix+key); StatTree(value,"$prefix  ") }
+        else Row(Modifier.fillMaxWidth().padding(vertical=6.dp),horizontalArrangement=Arrangement.spacedBy(12.dp),verticalAlignment=Alignment.Top) {
+            Text(prefix+key,modifier=Modifier.weight(1f),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,softWrap=true)
+            SelectionContainer(Modifier.weight(2f)) {
+                Text(value.toString(),modifier=Modifier.fillMaxWidth(),style=MaterialTheme.typography.bodyMedium,textAlign=androidx.compose.ui.text.style.TextAlign.End,softWrap=true)
+            }
         }
     }
 }
@@ -306,9 +326,17 @@ private val destinations=listOf(
                     }
                     3 -> LazyColumn(Modifier.weight(1f).padding(top=8.dp),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=16.dp)) {
                         items(vm.stats.keys().asSequence().toList()) { key -> CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
-                            Text(key.replaceFirstChar { it.uppercase() },style=MaterialTheme.typography.titleMedium)
+                            SystemStatHeading(key,large=true)
+                            Spacer(Modifier.height(8.dp))
+                            HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
+                            Spacer(Modifier.height(8.dp))
                             val value=vm.stats.opt(key)
-                            if(value is JSONObject) StatTree(value) else Text(value.toString(),style=MaterialTheme.typography.headlineSmall)
+                            if(value is JSONObject) StatTree(value) else Row(Modifier.fillMaxWidth()) {
+                                Spacer(Modifier.weight(1f))
+                                SelectionContainer(Modifier.weight(2f)) {
+                                    Text(value.toString(),modifier=Modifier.fillMaxWidth(),style=MaterialTheme.typography.headlineSmall,textAlign=androidx.compose.ui.text.style.TextAlign.End,softWrap=true)
+                                }
+                            }
                         } } }
                     }
                     4 -> Column(Modifier.weight(1f).padding(top=8.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
