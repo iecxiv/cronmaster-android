@@ -2,6 +2,7 @@ package iecxiv.cronmaster
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -35,9 +36,12 @@ class MainActivity: ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val vm: MainViewModel=viewModel()
-            val colors=if(vm.dark) darkColorScheme(primary=Color(0xFF77D8C7),secondary=Color(0xFFA8C7FA),background=Color(0xFF0C1320),surface=Color(0xFF121C2C))
-                else lightColorScheme(primary=Color(0xFF006B5D),secondary=Color(0xFF385F98),background=Color(0xFFF4F7FB),surface=Color.White)
-            MaterialTheme(colorScheme=colors) { Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) { App(vm) } }
+            val themes: ThemeStyleViewModel=viewModel()
+            CronmasterTheme(style=themes.style,dark=vm.dark) {
+                Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) {
+                    key(vm.sessionEpoch) { App(vm) }
+                }
+            }
         }
     }
 }
@@ -50,14 +54,16 @@ private val destinations=listOf(
     Destination("Backups",Icons.Default.Backup),Destination("Sistema",Icons.Default.Dns),Destination("Ajustes",Icons.Default.Settings)
 )
 @Composable private fun ActionIcon(icon: ImageVector,label: String,enabled: Boolean=true,tint: Color=LocalContentColor.current,onClick: () -> Unit) {
-    if (LocalCardActionLabels.current) {
-        CompactCardAction(icon, label, enabled, tint, onClick)
+    val rowScope = LocalCardActionRowScope.current
+    if (rowScope != null) {
+        with(rowScope) {
+            CompactCardAction(icon, label, enabled, tint, onClick)
+        }
     } else {
         IconButton(onClick=onClick,enabled=enabled) { Icon(icon,contentDescription=label,tint=if(enabled) tint else tint.copy(alpha=.35f)) }
     }
 }
-@OptIn(ExperimentalLayoutApi::class)
-@Composable private fun Actions(content: @Composable FlowRowScope.() -> Unit) {
+@Composable private fun Actions(content: @Composable RowScope.() -> Unit) {
     CardActions(content)
 }
 @Composable private fun WideModal(title: String,close: () -> Unit,content: @Composable ColumnScope.() -> Unit) {
@@ -100,9 +106,16 @@ private val destinations=listOf(
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun App(vm: MainViewModel) {
+    val appearance: AppAppearanceViewModel=viewModel()
+    val themes: ThemeStyleViewModel=viewModel()
+    ApplyAppearanceToTask(appearance)
     val owner=LocalLifecycleOwner.current
     val clipboard=LocalClipboardManager.current
     var tab by remember { mutableStateOf(0) }
+    var lastTab by remember { mutableStateOf(0) }
+    var appearanceDialog by remember { mutableStateOf(false) }
+    var addServerDialog by remember { mutableStateOf(false) }
+    var serverSwitcher by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var selectedUser by remember { mutableStateOf("") }
     var filters by remember { mutableStateOf(false) }
@@ -112,8 +125,15 @@ private val destinations=listOf(
     var output by remember { mutableStateOf<String?>(null) }
     var runId by remember { mutableStateOf<String?>(null) }
     val enabled=!vm.busy && !vm.restoring
+    LaunchedEffect(vm.connected) {
+        if(!vm.connected) { tab=0; lastTab=0 } else appearanceDialog=false
+    }
+    BackHandler(enabled=vm.connected && tab==4) { tab=lastTab }
     LaunchedEffect(owner,vm.connected,vm.restoring) {
         if(vm.connected && !vm.restoring) owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.foregroundLoop() }
+    }
+    fun openSettings() {
+        if(vm.connected) { if(tab in 0..3) lastTab=tab; tab=4 } else appearanceDialog=true
     }
     fun confirm(title: String,detail: String,run: () -> Unit) { confirmation=Confirmation(title,detail,run) }
     fun openJob(job: JSONObject?=null,script: JSONObject?=null) {
@@ -138,12 +158,20 @@ private val destinations=listOf(
     }
     Scaffold(
         containerColor=MaterialTheme.colorScheme.background,
-        topBar={ TopAppBar(title={ Column { Text("Cronmaster"); if(vm.connected) Text(destinations[tab].title,style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant) } },
-            actions={ if(vm.connected) ActionIcon(Icons.Default.Refresh,"Actualizar datos",enabled) {
-                vm.work { vm.refresh(); if(tab==2) vm.backups=vm.request("backups").rows(); vm.message="Datos actualizados" }
-            } }) },
+        topBar={ CronmasterAppBar(
+            appearance=appearance,
+            section=if(appearanceDialog) "Ajustes" else if(vm.connected) destinations[tab].title else "Acceso",
+            onOpenSettings={openSettings()},
+            onRefresh=if(vm.connected) { { vm.work { vm.refresh(); if(tab==2) vm.backups=vm.request("backups").rows(); vm.message="Datos actualizados" } } } else null,
+            refreshEnabled=enabled,
+            connectionStatus=vm.connectionStatus,
+            serverCount=vm.serverProfiles.size,
+            serverName=vm.activeServerName,
+            onSwitchServer={serverSwitcher=true},
+            switchEnabled=enabled
+        ) },
         bottomBar={ if(vm.connected) NavigationBar {
-            destinations.forEachIndexed { index,d -> NavigationBarItem(selected=tab==index,onClick={tab=index; if(index==2) vm.loadBackups()},icon={Icon(d.icon,d.title)},label=null) }
+            destinations.take(4).forEachIndexed { index,d -> NavigationBarItem(selected=tab==index,onClick={tab=index; lastTab=index; if(index==2) vm.loadBackups()},icon={Icon(d.icon,d.title)},label=null) }
         } },
         floatingActionButton={ if(vm.connected && tab in 0..1) FloatingActionButton(onClick={if(enabled) { if(tab==0) openJob() else openScript() }}) { Icon(Icons.Default.Add,if(tab==0) "Nueva tarea" else "Nuevo script") } }
     ) { padding ->
@@ -166,13 +194,9 @@ private val destinations=listOf(
                 Row(verticalAlignment=Alignment.CenterVertically) { Checkbox(vm.allowHttp,{vm.allowHttp=it}); Text("Permitir HTTP sin cifrado",style=MaterialTheme.typography.bodySmall) }
                 if(vm.allowHttp) Text("HTTP expone el acceso en la red. Utiliza HTTPS siempre que sea posible.",color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)
                 Button(onClick={vm.connect()},enabled=enabled && vm.url.isNotBlank(),modifier=Modifier.fillMaxWidth()) { Icon(Icons.Default.Login,null); Spacer(Modifier.width(8.dp)); Text("Conectar y guardar") }
-                TextButton(onClick={confirm("Borrar acceso local","Se eliminarán las credenciales guardadas en este dispositivo.") { vm.logout() }},enabled=enabled) { Text("Borrar acceso guardado") }
+                TextButton(onClick={confirm("Borrar acceso local",if(vm.activeServerId==null) "Se eliminarán los accesos guardados de este dispositivo." else "Se eliminará solo el acceso del servidor seleccionado. Los demás se conservarán.") { vm.logout() }},enabled=enabled) { Text("Borrar acceso guardado") }
             }
             else {
-                Row(verticalAlignment=Alignment.CenterVertically) {
-                    Box(Modifier.size(6.dp).background(MaterialTheme.colorScheme.primary,CircleShape))
-                    Spacer(Modifier.width(6.dp)); Text(vm.eventState,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                }
                 if(vm.wrapperModified) Text("Wrapper de logs modificado en el servidor",color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)
                 when(tab) {
                     0 -> {
@@ -187,7 +211,7 @@ private val destinations=listOf(
                             if(visible.isEmpty()) item { Text("No hay tareas que mostrar",modifier=Modifier.padding(16.dp)) }
                             items(visible,key={it.getString("id")}) { job ->
                                 val id=job.getString("id"); val args=obj("id" to id); val paused=job.optBoolean("paused",job.optBoolean("isPaused"))
-                                Card(Modifier.fillMaxWidth(),shape=MaterialTheme.shapes.large) { Column(Modifier.padding(16.dp)) {
+                                CronmasterCard(Modifier.fillMaxWidth(),shape=MaterialTheme.shapes.large) { Column(Modifier.padding(16.dp)) {
                                     Row(verticalAlignment=Alignment.CenterVertically) {
                                         Column(Modifier.weight(1f)) {
                                             Text(job.optString("comment").ifBlank { id },style=MaterialTheme.typography.titleMedium)
@@ -226,7 +250,7 @@ private val destinations=listOf(
                         if(vm.scripts.isEmpty()) item { Text("Crea tu primer script con el botón +") }
                         items(vm.scripts,key={it.getString("id")}) { script ->
                             val id=script.getString("id")
-                            Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+                            CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                                 Text(script.optString("name"),style=MaterialTheme.typography.titleMedium)
                                 Text(script.optString("description"),style=MaterialTheme.typography.bodyMedium)
                                 Text(script.optString("filename"),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
@@ -247,7 +271,7 @@ private val destinations=listOf(
                         }
                         LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=16.dp)) {
                             if(vm.backups.isEmpty()) item { Text("No hay backups cargados. Pulsa el icono de actualizar.") }
-                            items(vm.backups) { b -> Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+                            items(vm.backups) { b -> CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                                 Text(b.optJSONObject("job")?.optString("comment").orEmpty().ifBlank { b.optString("filename") },style=MaterialTheme.typography.titleMedium)
                                 Text(b.optString("filename"),style=MaterialTheme.typography.bodySmall)
                                 Text(b.optString("backedUpAt"),style=MaterialTheme.typography.labelSmall)
@@ -259,29 +283,32 @@ private val destinations=listOf(
                         }
                     }
                     3 -> LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=16.dp)) {
-                        items(vm.stats.keys().asSequence().toList()) { key -> Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+                        items(vm.stats.keys().asSequence().toList()) { key -> CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                             Text(key.replaceFirstChar { it.uppercase() },style=MaterialTheme.typography.titleMedium)
                             val value=vm.stats.opt(key)
                             if(value is JSONObject) StatTree(value) else Text(value.toString(),style=MaterialTheme.typography.headlineSmall)
                         } } }
                     }
                     4 -> Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
-                        Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                            Text("Conexión",style=MaterialTheme.typography.titleMedium)
+                        ServerSettingsCard(vm) { addServerDialog=true }
+                        ThemeStyleSettings(themes)
+                        AppearanceSettings(appearance)
+                        CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                            Text("Sesión activa",style=MaterialTheme.typography.titleMedium)
                             Text(vm.url,style=MaterialTheme.typography.bodySmall)
                             Text("Acceso cifrado · Android Keystore",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary)
                             Actions {
                                 ActionIcon(Icons.Default.Edit,"Cambiar acceso",enabled) { vm.editConnection() }
-                                ActionIcon(Icons.Default.Logout,"Cerrar sesión",enabled,MaterialTheme.colorScheme.error) { confirm("Cerrar sesión","Se borrarán el acceso y las cookies guardadas en este dispositivo.") { editor=null; history=null; output=null; runId=null; vm.logout() } }
+                                ActionIcon(Icons.Default.Logout,"Cerrar sesión",enabled,MaterialTheme.colorScheme.error) { confirm("Cerrar sesión","Se eliminará el acceso guardado de ${vm.activeServerName.ifBlank { vm.url }}. Los demás servidores se conservarán.") { editor=null; history=null; output=null; runId=null; vm.logout() } }
                             }
                         } }
-                        Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+                        CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                             Row(verticalAlignment=Alignment.CenterVertically) { Icon(Icons.Default.DarkMode,null); Text("  Tema oscuro",modifier=Modifier.weight(1f)); Switch(vm.dark,{vm.dark=it;vm.saveAppearance()}) }
                             Row(verticalAlignment=Alignment.CenterVertically) { Text("Vista mínima",modifier=Modifier.weight(1f)); Switch(vm.minimal,{vm.minimal=it;vm.saveAppearance()}) }
                             Row(verticalAlignment=Alignment.CenterVertically) { Text("Horarios legibles",modifier=Modifier.weight(1f)); Switch(vm.human,{vm.human=it;vm.saveAppearance()}) }
                         } }
-                        Text("Verde: última ejecución correcta. Rojo: fallo. Gris: sin resultado verificable o logging desactivado. La pausa se muestra por separado.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("La sesión se restaura al abrir la app. El servidor puede revocar el acceso; la app no puede impedirlo. OIDC no está implementado.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        SettingsInformationCard()
+                        SettingsVersionFooter()
                     }
                 }
             }
@@ -323,7 +350,7 @@ private val destinations=listOf(
     history?.let { h -> WideModal("Logs · ${h.name}",{history=null}) {
         Actions { ActionIcon(Icons.Default.DeleteSweep,"Eliminar todos los logs",enabled,MaterialTheme.colorScheme.error) { confirm("Eliminar todos los logs",h.id) { vm.action("logs.deleteAll",obj("id" to h.id)) { history=null } } } }
         if(h.rows.isEmpty()) Text("No hay logs guardados")
-        h.rows.forEach { log -> Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
+        h.rows.forEach { log -> CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
             Text(log.optString("filename"),style=MaterialTheme.typography.titleSmall)
             Text("${log.optLong("size")} bytes · exit ${if(log.isNull("exitCode")) "—" else log.optString("exitCode","—")}",style=MaterialTheme.typography.bodySmall)
             val args=obj("id" to h.id,"filename" to log.getString("filename"))
@@ -334,5 +361,8 @@ private val destinations=listOf(
         } } }
     } }
     output?.let { text -> TerminalDialog("Log de ejecución",text,"Salida guardada",close={output=null}) }
-    runId?.let { id -> LiveTerminal(vm,id) { runId=null } }
+    runId?.let { id -> SessionLiveTerminal(vm,id) { runId=null } }
+    if(appearanceDialog) ServerSettingsDialog(vm,appearance,close={appearanceDialog=false},onAddServer={addServerDialog=true})
+    if(serverSwitcher && vm.serverProfiles.size>1) ServerSwitcherDialog(vm) { serverSwitcher=false }
+    if(addServerDialog) AddServerDialog(vm) { addServerDialog=false }
 }

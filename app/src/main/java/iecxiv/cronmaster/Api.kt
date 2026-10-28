@@ -101,6 +101,7 @@ class Api(
         return EventSources.createFactory(streaming).newEventSource(builder("api/events").header("Accept","text/event-stream").build(),object: EventSourceListener() {
             override fun onOpen(eventSource: EventSource,response: Response) { onState("Conexión en vivo") }
             override fun onEvent(eventSource: EventSource,id: String?,type: String?,data: String) { if(type!="heartbeat") onEvent() }
+            override fun onClosed(eventSource: EventSource) { onState("Refresco periódico") }
             override fun onFailure(eventSource: EventSource,t: Throwable?,response: Response?) { onState("Refresco periódico") }
         })
     }
