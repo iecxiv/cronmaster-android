@@ -12,7 +12,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-class SecureStore(context: Context, private val profileId: String? = null) {
+class SecureStore(context: Context, private val profileId: String? = null, private val expectedRevision: String? = null) {
     companion object { private val lock = Any() }
     private val app = context.applicationContext
     private val prefs = app.getSharedPreferences("secure_session", Context.MODE_PRIVATE)
@@ -58,6 +58,7 @@ class SecureStore(context: Context, private val profileId: String? = null) {
     }
     fun saveCookies(cookies: JSONArray): Unit = synchronized(lock) {
         val root = document()
+        if (expectedRevision != null && !profileRevisionMatches(ServerProfileDocument.load(root, profileId), expectedRevision)) return@synchronized
         if (ServerProfileDocument.saveCookies(root, profileId, cookies)) write(root)
     }
     internal fun saveProfile(value: JSONObject, name: String, makeActive: Boolean = true): String = synchronized(lock) {
@@ -69,6 +70,7 @@ class SecureStore(context: Context, private val profileId: String? = null) {
         id
     }
     internal fun forProfile(id: String) = SecureStore(app, id)
+    internal fun forSession(id: String, config: JSONObject) = SecureStore(app, id, config.optString("credential_revision", ""))
     internal fun snapshot(): ServerProfiles = synchronized(lock) { ServerProfileDocument.snapshot(document()) }
     internal fun activate(id: String) = synchronized(lock) {
         val root = document()
