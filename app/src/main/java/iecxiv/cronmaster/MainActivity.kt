@@ -38,7 +38,7 @@ class MainActivity: ComponentActivity() {
             val vm: MainViewModel=viewModel()
             val colors=if(vm.dark) darkColorScheme(primary=Color(0xFF77D8C7),secondary=Color(0xFFA8C7FA),background=Color(0xFF0C1320),surface=Color(0xFF121C2C))
                 else lightColorScheme(primary=Color(0xFF006B5D),secondary=Color(0xFF385F98),background=Color(0xFFF4F7FB),surface=Color.White)
-            MaterialTheme(colorScheme=colors) { Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) { App(vm) } }
+            MaterialTheme(colorScheme=colors) { Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) { key(vm.sessionEpoch) { App(vm) } } }
         }
     }
 }
@@ -110,6 +110,8 @@ private val destinations=listOf(
     var tab by remember { mutableStateOf(0) }
     var lastTab by remember { mutableStateOf(0) }
     var appearanceDialog by remember { mutableStateOf(false) }
+    var addServerDialog by remember { mutableStateOf(false) }
+    var serverSwitcher by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var selectedUser by remember { mutableStateOf("") }
     var filters by remember { mutableStateOf(false) }
@@ -158,7 +160,11 @@ private val destinations=listOf(
             onOpenSettings={openSettings()},
             onRefresh=if(vm.connected) { { vm.work { vm.refresh(); if(tab==2) vm.backups=vm.request("backups").rows(); vm.message="Datos actualizados" } } } else null,
             refreshEnabled=enabled,
-            connectionStatus=vm.connectionStatus
+            connectionStatus=vm.connectionStatus,
+            serverCount=vm.serverProfiles.size,
+            serverName=vm.activeServerName,
+            onSwitchServer={serverSwitcher=true},
+            switchEnabled=enabled
         ) },
         bottomBar={ if(vm.connected) NavigationBar {
             destinations.take(4).forEachIndexed { index,d -> NavigationBarItem(selected=tab==index,onClick={tab=index; lastTab=index; if(index==2) vm.loadBackups()},icon={Icon(d.icon,d.title)},label=null) }
@@ -184,7 +190,7 @@ private val destinations=listOf(
                 Row(verticalAlignment=Alignment.CenterVertically) { Checkbox(vm.allowHttp,{vm.allowHttp=it}); Text("Permitir HTTP sin cifrado",style=MaterialTheme.typography.bodySmall) }
                 if(vm.allowHttp) Text("HTTP expone el acceso en la red. Utiliza HTTPS siempre que sea posible.",color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)
                 Button(onClick={vm.connect()},enabled=enabled && vm.url.isNotBlank(),modifier=Modifier.fillMaxWidth()) { Icon(Icons.Default.Login,null); Spacer(Modifier.width(8.dp)); Text("Conectar y guardar") }
-                TextButton(onClick={confirm("Borrar acceso local","Se eliminarán las credenciales guardadas en este dispositivo.") { vm.logout() }},enabled=enabled) { Text("Borrar acceso guardado") }
+                TextButton(onClick={confirm("Borrar acceso local",if(vm.activeServerId==null) "Se eliminarán los accesos guardados de este dispositivo." else "Se eliminará solo el acceso del servidor seleccionado. Los demás se conservarán.") { vm.logout() }},enabled=enabled) { Text("Borrar acceso guardado") }
             }
             else {
                 if(vm.wrapperModified) Text("Wrapper de logs modificado en el servidor",color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)
@@ -280,14 +286,15 @@ private val destinations=listOf(
                         } } }
                     }
                     4 -> Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+                        ServerSettingsCard(vm) { addServerDialog=true }
                         AppearanceSettings(appearance)
                         Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                            Text("Conexión",style=MaterialTheme.typography.titleMedium)
+                            Text("Sesión activa",style=MaterialTheme.typography.titleMedium)
                             Text(vm.url,style=MaterialTheme.typography.bodySmall)
                             Text("Acceso cifrado · Android Keystore",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary)
                             Actions {
                                 ActionIcon(Icons.Default.Edit,"Cambiar acceso",enabled) { vm.editConnection() }
-                                ActionIcon(Icons.Default.Logout,"Cerrar sesión",enabled,MaterialTheme.colorScheme.error) { confirm("Cerrar sesión","Se borrarán el acceso y las cookies guardadas en este dispositivo.") { editor=null; history=null; output=null; runId=null; vm.logout() } }
+                                ActionIcon(Icons.Default.Logout,"Cerrar sesión",enabled,MaterialTheme.colorScheme.error) { confirm("Cerrar sesión","Se eliminará el acceso guardado de ${vm.activeServerName.ifBlank { vm.url }}. Los demás servidores se conservarán.") { editor=null; history=null; output=null; runId=null; vm.logout() } }
                             }
                         } }
                         Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
@@ -349,6 +356,8 @@ private val destinations=listOf(
         } } }
     } }
     output?.let { text -> TerminalDialog("Log de ejecución",text,"Salida guardada",close={output=null}) }
-    runId?.let { id -> LiveTerminal(vm,id) { runId=null } }
-    if(appearanceDialog) AppearanceSettingsDialog(appearance) { appearanceDialog=false }
+    runId?.let { id -> SessionLiveTerminal(vm,id) { runId=null } }
+    if(appearanceDialog) ServerSettingsDialog(vm,appearance,close={appearanceDialog=false},onAddServer={addServerDialog=true})
+    if(serverSwitcher && vm.serverProfiles.size>1) ServerSwitcherDialog(vm) { serverSwitcher=false }
+    if(addServerDialog) AddServerDialog(vm) { addServerDialog=false }
 }
