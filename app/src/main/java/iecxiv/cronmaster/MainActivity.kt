@@ -97,13 +97,41 @@ private val destinations=listOf(
         Text(state.label,color=color,style=MaterialTheme.typography.labelMedium)
     }
 }
+@Composable private fun SystemStatHeading(title: String,large: Boolean=false) {
+    val key=title.trim().lowercase(java.util.Locale.ROOT)
+    val icon=when {
+        "cpu" in key || "processor" in key || "load" in key -> Icons.Default.Speed
+        "mem" in key || "ram" in key || "swap" in key -> Icons.Default.Memory
+        "disk" in key || "storage" in key || "filesystem" in key -> Icons.Default.Storage
+        "network" in key || "interface" in key -> Icons.Default.NetworkCheck
+        "uptime" in key || "time" in key -> Icons.Default.Schedule
+        "system" in key || "host" in key || key == "os" -> Icons.Default.Dns
+        else -> Icons.Default.Info
+    }
+    Row(Modifier.fillMaxWidth().padding(vertical=2.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+        Icon(icon,null,Modifier.size(if(large) 20.dp else 18.dp),tint=MaterialTheme.colorScheme.primary)
+        Text(title.trim().replaceFirstChar { it.uppercase() },modifier=Modifier.weight(1f),style=if(large) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleSmall,color=MaterialTheme.colorScheme.onSurface,softWrap=true)
+    }
+}
+@Composable private fun SystemStatValue(value: String,modifier: Modifier=Modifier) {
+    SelectionContainer(modifier) {
+        Text(value,modifier=Modifier.fillMaxWidth(),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurface,textAlign=androidx.compose.ui.text.style.TextAlign.End,softWrap=true)
+    }
+}
 @Composable private fun StatTree(data: JSONObject,prefix: String="") {
     data.keys().asSequence().toList().forEach { key ->
         val value=data.opt(key)
-        if(value is JSONObject) { Text(prefix+key,style=MaterialTheme.typography.titleSmall); StatTree(value,"$prefix  ") }
-        else Row(Modifier.fillMaxWidth().padding(vertical=4.dp)) {
-            Text(prefix+key,modifier=Modifier.weight(1f),color=MaterialTheme.colorScheme.onSurfaceVariant)
-            SelectionContainer { Text(value.toString(),style=MaterialTheme.typography.bodyMedium) }
+        if(value is JSONObject) {
+            SystemStatHeading(prefix+key)
+            StatTree(value,"$prefix  ")
+        } else BoxWithConstraints(Modifier.fillMaxWidth().padding(vertical=4.dp)) {
+            val gap=12.dp
+            val labelWidth=((maxWidth-gap).coerceAtLeast(0.dp))/3f
+            val valueWidth=((maxWidth-gap).coerceAtLeast(0.dp))*2f/3f
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(gap),verticalAlignment=Alignment.Top) {
+                Text(prefix+key,modifier=Modifier.width(labelWidth),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,softWrap=true)
+                Box(Modifier.width(valueWidth)) { SystemStatValue(value.toString()) }
+            }
         }
     }
 }
@@ -306,9 +334,17 @@ private val destinations=listOf(
                     }
                     3 -> LazyColumn(Modifier.weight(1f).padding(top=8.dp),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=16.dp)) {
                         items(vm.stats.keys().asSequence().toList()) { key -> CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
-                            Text(key.replaceFirstChar { it.uppercase() },style=MaterialTheme.typography.titleMedium)
+                            SystemStatHeading(key,large=true)
+                            Spacer(Modifier.height(6.dp))
+                            HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
+                            Spacer(Modifier.height(6.dp))
                             val value=vm.stats.opt(key)
-                            if(value is JSONObject) StatTree(value) else Text(value.toString(),style=MaterialTheme.typography.headlineSmall)
+                            if(value is JSONObject) StatTree(value) else BoxWithConstraints(Modifier.fillMaxWidth()) {
+                                val valueWidth=maxWidth*2f/3f
+                                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End) {
+                                    Box(Modifier.width(valueWidth)) { SystemStatValue(value.toString()) }
+                                }
+                            }
                         } } }
                     }
                     4 -> Column(Modifier.weight(1f).padding(top=8.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
