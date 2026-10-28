@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_updated">Actualizado</string>
+    <string name="settings_load_image">Cargar Imagen</string>
+    <string name="settings_default_icon">Icono por defecto</string>
+    <string name="settings_icon_loaded">Icono cargado</string>
+    <string name="settings_launcher_button">Añadir icono personalizado al inicio (Launcher)</string>
+    <string name="settings_app_theme_title">Tema de la aplicación</string>
+    <string name="settings_style_label">Estilo visual</string>
+    <string name="theme_mode_system">Sistema</string>
+    <string name="theme_mode_light">Claro</string>
+    <string name="theme_mode_dark">Oscuro</string>
+    <string name="settings_hide_gear_title">Ocultar icono de engranaje</string>
+    <string name="settings_hide_gear_description">Oculta el icono de ajustes de la barra superior</string>
+    <string name="settings_hide_gear_note">Recuerda: Si ocultas el icono de engranaje, podrás seguir accediendo a esta pantalla de Ajustes en cualquier momento, pulsando directamente sobre la imagen/logo de la app en la cabecera (header) superior izquierda.</string>
+    <string name="settings_display_options">Opciones de visualización</string>
+    <string name="settings_personalization_note">El nombre y el icono personalizados se aplican a la cabecera y a la vista de aplicaciones recientes. El botón del launcher permite crear o actualizar el acceso de la pantalla de inicio.</string>
+</resources>
