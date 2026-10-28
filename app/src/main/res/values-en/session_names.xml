@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="session_name_optional">Session name (optional)</string>
+    <string name="edit_session_name">Edit session name</string>
+    <string name="edit_session_name_description">Edit name for %1$s</string>
+    <string name="session_names_hint">Change names without signing out or modifying credentials. Leave a name empty to display its URL.</string>
+    <string name="session_name_saved">Session name saved</string>
+</resources>

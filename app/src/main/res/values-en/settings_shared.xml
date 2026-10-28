@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_updated">Updated</string>
+    <string name="settings_load_image">Load image</string>
+    <string name="settings_default_icon">Default icon</string>
+    <string name="settings_icon_loaded">Icon loaded</string>
+    <string name="settings_launcher_button">Add custom icon to home screen (Launcher)</string>
+    <string name="settings_app_theme_title">App theme</string>
+    <string name="settings_style_label">Visual style</string>
+    <string name="theme_mode_system">System</string>
+    <string name="theme_mode_light">Light</string>
+    <string name="theme_mode_dark">Dark</string>
+    <string name="settings_hide_gear_title">Hide settings icon</string>
+    <string name="settings_hide_gear_description">Hide the settings icon in the top bar</string>
+    <string name="settings_hide_gear_note">Remember: If you hide the settings icon, you can still open this Settings screen at any time by tapping the app image or logo in the top-left header.</string>
+    <string name="settings_display_options">Display options</string>
+    <string name="settings_personalization_note">The custom name and icon are applied to the header and the recent apps view. The launcher button lets you create or update the home screen shortcut.</string>
+</resources>

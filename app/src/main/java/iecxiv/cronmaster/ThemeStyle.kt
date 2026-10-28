@@ -11,13 +11,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 
-internal enum class ThemeStyle(val label: String) {
-    CRONMASTER("Cronmaster (principal)"),
-    MESHFABRIC("MeshFabric");
+internal enum class ThemeStyle(val labelRes: Int) {
+    CRONMASTER(R.string.theme_cronmaster),
+    MESHFABRIC(R.string.theme_meshfabric);
 
     companion object {
         fun fromPreference(value: String?): ThemeStyle = values().firstOrNull { it.name == value } ?: CRONMASTER
@@ -107,24 +108,24 @@ internal fun ThemeStyleSettings(themes: ThemeStyleViewModel) {
     var expanded by remember { mutableStateOf(false) }
     CronmasterCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Tema visual", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.visual_theme), style = MaterialTheme.typography.titleMedium)
             Box {
                 OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(themes.style.label, modifier = Modifier.weight(1f))
-                        Icon(Icons.Default.ArrowDropDown, "Elegir tema visual")
+                        Text(stringResource(themes.style.labelRes), modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ArrowDropDown, stringResource(R.string.choose_visual_theme))
                     }
                 }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     ThemeStyle.values().forEach { option ->
-                        DropdownMenuItem(text = { Text(option.label) }, onClick = {
+                        DropdownMenuItem(text = { Text(stringResource(option.labelRes)) }, onClick = {
                             themes.choose(option)
                             expanded = false
-                        }, trailingIcon = { if (option == themes.style) Icon(Icons.Default.Check, "Tema seleccionado") })
+                        }, trailingIcon = { if (option == themes.style) Icon(Icons.Default.Check, stringResource(R.string.selected_theme)) })
                     }
                 }
             }
-            Text("Cronmaster conserva el estilo original. MeshFabric adapta sus colores, tarjetas y títulos. El modo claro/oscuro se configura por separado.",
+            Text(stringResource(R.string.visual_theme_hint),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

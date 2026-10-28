@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -37,7 +38,8 @@ class MainActivity: ComponentActivity() {
         setContent {
             val vm: MainViewModel=viewModel()
             val themes: ThemeStyleViewModel=viewModel()
-            CronmasterTheme(style=themes.style,dark=vm.dark) {
+            val display: DisplayModeViewModel=viewModel()
+            SettingsAppTheme(style=themes.style,mode=display.mode) {
                 Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) {
                     key(vm.sessionEpoch) { App(vm) }
                 }
@@ -108,6 +110,7 @@ private val destinations=listOf(
 @Composable private fun App(vm: MainViewModel) {
     val appearance: AppAppearanceViewModel=viewModel()
     val themes: ThemeStyleViewModel=viewModel()
+    val display: DisplayModeViewModel=viewModel()
     ApplyAppearanceToTask(appearance)
     val owner=LocalLifecycleOwner.current
     val clipboard=LocalClipboardManager.current
@@ -188,6 +191,7 @@ private val destinations=listOf(
                 Icon(Icons.Default.Terminal,null,modifier=Modifier.size(56.dp),tint=MaterialTheme.colorScheme.primary)
                 Text("Tu servidor, a un toque",style=MaterialTheme.typography.headlineMedium)
                 Text("Identifícate una vez. El acceso se guarda cifrado en este dispositivo.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedTextField(vm.sessionName,{if(it.length<=64) vm.sessionName=it},label={Text(stringResource(R.string.session_name_optional))},singleLine=true,enabled=enabled,modifier=Modifier.fillMaxWidth())
                 Field("URL del servidor",vm.url,onChange={vm.url=it})
                 Field("Contraseña",vm.password,true) { vm.password=it }
                 Field("API key (alternativa)",vm.token,true) { vm.token=it }
@@ -290,25 +294,7 @@ private val destinations=listOf(
                         } } }
                     }
                     4 -> Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
-                        ServerSettingsCard(vm) { addServerDialog=true }
-                        ThemeStyleSettings(themes)
-                        AppearanceSettings(appearance)
-                        CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                            Text("Sesión activa",style=MaterialTheme.typography.titleMedium)
-                            Text(vm.url,style=MaterialTheme.typography.bodySmall)
-                            Text("Acceso cifrado · Android Keystore",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary)
-                            Actions {
-                                ActionIcon(Icons.Default.Edit,"Cambiar acceso",enabled) { vm.editConnection() }
-                                ActionIcon(Icons.Default.Logout,"Cerrar sesión",enabled,MaterialTheme.colorScheme.error) { confirm("Cerrar sesión","Se eliminará el acceso guardado de ${vm.activeServerName.ifBlank { vm.url }}. Los demás servidores se conservarán.") { editor=null; history=null; output=null; runId=null; vm.logout() } }
-                            }
-                        } }
-                        CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
-                            Row(verticalAlignment=Alignment.CenterVertically) { Icon(Icons.Default.DarkMode,null); Text("  Tema oscuro",modifier=Modifier.weight(1f)); Switch(vm.dark,{vm.dark=it;vm.saveAppearance()}) }
-                            Row(verticalAlignment=Alignment.CenterVertically) { Text("Vista mínima",modifier=Modifier.weight(1f)); Switch(vm.minimal,{vm.minimal=it;vm.saveAppearance()}) }
-                            Row(verticalAlignment=Alignment.CenterVertically) { Text("Horarios legibles",modifier=Modifier.weight(1f)); Switch(vm.human,{vm.human=it;vm.saveAppearance()}) }
-                        } }
-                        SettingsInformationCard()
-                        SettingsVersionFooter()
+                        AppSettingsContent(vm,appearance,themes,display,onAddServer={addServerDialog=true})
                     }
                 }
             }
@@ -362,7 +348,7 @@ private val destinations=listOf(
     } }
     output?.let { text -> TerminalDialog("Log de ejecución",text,"Salida guardada",close={output=null}) }
     runId?.let { id -> SessionLiveTerminal(vm,id) { runId=null } }
-    if(appearanceDialog) ServerSettingsDialog(vm,appearance,close={appearanceDialog=false},onAddServer={addServerDialog=true})
+    if(appearanceDialog) UnifiedSettingsDialog(vm,appearance,themes,display,close={appearanceDialog=false},onAddServer={addServerDialog=true})
     if(serverSwitcher && vm.serverProfiles.size>1) ServerSwitcherDialog(vm) { serverSwitcher=false }
     if(addServerDialog) AddServerDialog(vm) { addServerDialog=false }
 }

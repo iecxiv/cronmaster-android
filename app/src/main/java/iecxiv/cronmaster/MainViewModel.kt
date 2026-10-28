@@ -27,6 +27,7 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
         private set
     internal val activeServerName: String get()=serverProfiles.firstOrNull { it.id==activeServerId }?.name.orEmpty()
     var url by mutableStateOf("")
+    var sessionName by mutableStateOf("")
     var token by mutableStateOf("")
     var password by mutableStateOf("")
     var allowHttp by mutableStateOf(false)
@@ -94,6 +95,7 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
         closeApi()
         clearData()
         serverProfiles=snapshot.items; activeServerId=id; editingServerId=null
+        sessionName=snapshot.items.firstOrNull { it.id==id }?.let { if(it.name==it.url) "" else it.name }.orEmpty()
         api=client; url=config.optString("url"); allowHttp=config.optBoolean("http")
         password=""; token=""; connected=true
         connectionStatus=ConnectionStatus.CONNECTING
@@ -102,7 +104,7 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
     private fun disconnected(snapshot: ServerProfiles=ServerProfiles(null,emptyList())) {
         closeApi(); clearData()
         serverProfiles=snapshot.items; activeServerId=snapshot.activeId; editingServerId=null
-        connected=false; url=""; token=""; password=""
+        connected=false; url=""; sessionName=""; token=""; password=""
         sessionEpoch++
     }
     fun saveAppearance() { preferences.edit().putBoolean("dark",dark).putBoolean("minimal",minimal).putBoolean("human",human).apply() }
@@ -143,9 +145,20 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
         } finally { if(!adopted) candidate.shutdown() }
     }
     fun connect()=work {
-        val profile=serverProfiles.firstOrNull { it.id==editingServerId }
-        val name=profile?.let { if(it.name==it.url) "" else it.name }.orEmpty()
-        registerServer(editingServerId,name,url,token,password,allowHttp) {}
+        registerServer(editingServerId,sessionName,url,token,password,allowHttp) {}
+    }
+    internal fun renameSession(id: String,name: String,done: () -> Unit,failed: (String) -> Unit)=work {
+        try {
+            val app=getApplication<Application>()
+            require(name.trim().length<=64) { app.getString(R.string.error_name_too_long) }
+            check(serverProfiles.any { it.id==id }) { app.getString(R.string.error_server_not_saved) }
+            val snapshot=withContext(Dispatchers.IO) { vault.rename(id,name); vault.snapshot() }
+            serverProfiles=snapshot.items
+            if(activeServerId==id) sessionName=name.trim()
+            message=app.getString(R.string.session_name_saved)
+            done()
+        } catch(e: CancellationException) { throw e }
+        catch(e: Exception) { showError(e); failed(message) }
     }
     internal fun addServer(name: String,serverUrl: String,apiKey: String,secret: String,http: Boolean,done: () -> Unit,failed: (String) -> Unit)=work {
         try { registerServer(null,name,serverUrl,apiKey,secret,http,done) }
@@ -288,6 +301,7 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
         val id=checkNotNull(activeServerId) { "No hay un servidor seleccionado" }
         val config=withContext(Dispatchers.IO) { checkNotNull(vault.forProfile(id).load()) }
         closeApi(); clearData(); connected=false; editingServerId=id
+        sessionName=serverProfiles.firstOrNull { it.id==id }?.let { if(it.name==it.url) "" else it.name }.orEmpty()
         url=config.optString("url"); allowHttp=config.optBoolean("http")
         token=""; password=""; sessionEpoch++
         message="Introduce el nuevo acceso. El anterior se conserva cifrado hasta que guardes uno válido o cierres esta sesión."

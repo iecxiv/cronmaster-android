@@ -39,11 +39,11 @@
     <string name="dismiss_appearance_notice">Descartar aviso de apariencia</string>
     <string name="close_appearance_settings">Cerrar ajustes de apariencia</string>
     <string name="visual_theme">Tema visual</string>
-    <string name="theme_cronmaster">Cronmaster (principal)</string>
-    <string name="theme_meshfabric">MeshFabric</string>
+    <string name="theme_cronmaster">Original (principal)</string>
+    <string name="theme_meshfabric">Alternativo</string>
     <string name="choose_visual_theme">Elegir tema visual</string>
     <string name="selected_theme">Tema seleccionado</string>
-    <string name="visual_theme_hint">Cronmaster conserva el estilo original. MeshFabric adapta sus colores, tarjetas y títulos. El modo claro/oscuro se configura por separado.</string>
+    <string name="visual_theme_hint">Original conserva el aspecto principal. Alternativo cambia colores, tarjetas y títulos. El modo claro/oscuro se configura por separado.</string>
     <string name="dark_theme">Tema oscuro</string>
     <string name="minimal_view">Vista mínima</string>
     <string name="readable_schedules">Horarios legibles</string>
