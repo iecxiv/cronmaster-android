@@ -57,6 +57,7 @@ internal fun CronmasterAppBar(
     onSwitchServer: (() -> Unit)? = null,
     switchEnabled: Boolean = true
 ) {
+    val mesh = LocalThemeStyle.current == ThemeStyle.MESHFABRIC
     val statusColor = when (connectionStatus) {
         ConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
         ConnectionStatus.CONNECTING -> Color(0xFFFFC107)
@@ -76,7 +77,7 @@ internal fun CronmasterAppBar(
         title = {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(appearance.displayName, modifier = Modifier.weight(1f, fill = false), fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(appearance.displayName, modifier = Modifier.weight(1f, fill = false), fontSize = 18.sp, fontWeight = if (mesh) FontWeight.Bold else FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Spacer(Modifier.width(8.dp))
                     Box(Modifier.size(10.dp).background(statusColor, CircleShape).semantics {
                         contentDescription = "Estado de conexión: $statusLabel"

@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 private fun ServerChoice(profile: ServerProfile,active: Boolean,enabled: Boolean,select: () -> Unit) {
@@ -37,7 +38,7 @@ private fun ServerChoice(profile: ServerProfile,active: Boolean,enabled: Boolean
 @Composable
 internal fun ServerSettingsCard(vm: MainViewModel,onAddServer: () -> Unit) {
     val enabled=!vm.busy && !vm.restoring
-    Card(Modifier.fillMaxWidth()) {
+    CronmasterCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Text("Servidores",style=MaterialTheme.typography.titleMedium)
             if(vm.serverProfiles.isEmpty()) Text("No hay servidores guardados",style=MaterialTheme.typography.bodySmall)
@@ -116,6 +117,7 @@ internal fun AddServerDialog(vm: MainViewModel,close: () -> Unit) {
 
 @Composable
 internal fun ServerSettingsDialog(vm: MainViewModel,appearance: AppAppearanceViewModel,close: () -> Unit,onAddServer: () -> Unit) {
+    val themes: ThemeStyleViewModel=viewModel()
     Dialog(onDismissRequest=close,properties=DialogProperties(usePlatformDefaultWidth=false)) {
         Surface(Modifier.windowInsetsPadding(WindowInsets.safeDrawing).fillMaxWidth(.96f).widthIn(max=960.dp).fillMaxHeight(.92f),shape=MaterialTheme.shapes.extraLarge,tonalElevation=6.dp) {
             Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -125,6 +127,7 @@ internal fun ServerSettingsDialog(vm: MainViewModel,appearance: AppAppearanceVie
                 }
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top=8.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
                     ServerSettingsCard(vm,onAddServer)
+                    ThemeStyleSettings(themes)
                     AppearanceSettings(appearance)
                     SettingsInformationCard()
                     SettingsVersionFooter()

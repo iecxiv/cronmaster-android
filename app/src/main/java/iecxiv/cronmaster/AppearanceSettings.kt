@@ -27,7 +27,7 @@ internal fun AppearanceSettings(appearance: AppAppearanceViewModel) {
     }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (appearance.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-        Card(Modifier.fillMaxWidth()) {
+        CronmasterCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Nombre de la aplicación", style = MaterialTheme.typography.titleMedium)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -42,7 +42,7 @@ internal fun AppearanceSettings(appearance: AppAppearanceViewModel) {
                 }
             }
         }
-        Card(Modifier.fillMaxWidth()) {
+        CronmasterCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Icono de la aplicación", style = MaterialTheme.typography.titleMedium)
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -63,7 +63,7 @@ internal fun AppearanceSettings(appearance: AppAppearanceViewModel) {
                 Text("Personaliza el header y un acceso directo. No sustituye el nombre ni el icono originales del cajón de aplicaciones. Si ya existe el acceso personalizado, se actualiza.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Card(Modifier.fillMaxWidth()) {
+        CronmasterCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Ocultar botón de ajustes", modifier = Modifier.weight(1f))

@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun SettingsInformationCard() {
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .4f))) {
+    CronmasterCard(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .4f))) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
             Icon(Icons.Default.Info, "Información", tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(12.dp))
