@@ -77,15 +77,18 @@ El workflow genera un APK debug si supera las pruebas. Consulta su resultado en 
 
 ## Servidor: elige una modalidad
 
+- Instalación existente de Proxmox Community Scripts: [implementación](docs/SERVIDOR-COMMUNITY-SCRIPTS.md) y [actualización](docs/UPDATE-COMMUNITY-SCRIPTS.md). Detecta la versión de `/opt/cronmaster/package.json`, compila fuera de producción y conserva el servicio original.
 - Conservar código original: [instalación paralela](docs/SERVIDOR-PARALELO.md) y [actualización](docs/UPDATE-PARALELO.md).
 - Sustituir código activo: [reemplazo](docs/SERVIDOR-REEMPLAZO.md) y [actualización](docs/UPDATE-REEMPLAZO.md).
-- Pasos comunes: [compilar](docs/COMPILAR-SERVIDOR.md) y [desplegar](docs/DESPLEGAR-SERVIDOR.md).
+- Pasos comunes de las modalidades anteriores: [compilar](docs/COMPILAR-SERVIDOR.md) y [desplegar](docs/DESPLEGAR-SERVIDOR.md). Community Scripts tiene un procedimiento independiente; no mezcles los bloques.
 
-La modalidad paralela comparte datos y crontabs, no es aislamiento total. Solo una instancia debe estar activa. El adaptador está en `server-extension/app/api/native/route.ts`.
+La modalidad paralela comparte datos y crontabs, no es aislamiento total. Solo una instancia debe estar activa. El adaptador está en `server-extension/app/api/native/route.ts`; consulta también [su README](server-extension/README.md). Community Scripts sustituye el runtime compilado en `/opt/cronmaster`, aunque se documenta por separado por su origen y comprobaciones.
 
 ## Estado y seguridad
 
 Base Android importada del generador del usuario, sin compilar en el entorno de publicación. El adaptador incluye la corrección `next().toDate().toISOString()` validada en Cronmaster 2.4.0. La instalación oficial 2.4.1 actualizada por el usuario, y se valido la extensión contra ella. La modalidad paralela es una alternativa documentada, no un despliegue confirmado.
+
+El usuario ha comunicado un despliegue funcional de la extensión sobre una instalación de Community Scripts y ha aportado sus pasos. Los bloques generalizados con detección automática de versión no se han ejecutado en el entorno de publicación; detectar una etiqueta no garantiza compatibilidad con cualquier release.
 
 No publiques .env, claves, cookies, backups ni firmas Android. El servidor puede operar como root; usa autenticación y TLS. Los ejemplos no sustituyen backups de datos y crontabs.
 
