@@ -2,6 +2,7 @@ package iecxiv.cronmaster
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -102,9 +103,13 @@ private val destinations=listOf(
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun App(vm: MainViewModel) {
+    val appearance: AppAppearanceViewModel=viewModel()
+    ApplyAppearanceToTask(appearance)
     val owner=LocalLifecycleOwner.current
     val clipboard=LocalClipboardManager.current
     var tab by remember { mutableStateOf(0) }
+    var lastTab by remember { mutableStateOf(0) }
+    var appearanceDialog by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var selectedUser by remember { mutableStateOf("") }
     var filters by remember { mutableStateOf(false) }
@@ -114,8 +119,15 @@ private val destinations=listOf(
     var output by remember { mutableStateOf<String?>(null) }
     var runId by remember { mutableStateOf<String?>(null) }
     val enabled=!vm.busy && !vm.restoring
+    LaunchedEffect(vm.connected) {
+        if(!vm.connected) { tab=0; lastTab=0 } else appearanceDialog=false
+    }
+    BackHandler(enabled=vm.connected && tab==4) { tab=lastTab }
     LaunchedEffect(owner,vm.connected,vm.restoring) {
         if(vm.connected && !vm.restoring) owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.foregroundLoop() }
+    }
+    fun openSettings() {
+        if(vm.connected) { if(tab in 0..3) lastTab=tab; tab=4 } else appearanceDialog=true
     }
     fun confirm(title: String,detail: String,run: () -> Unit) { confirmation=Confirmation(title,detail,run) }
     fun openJob(job: JSONObject?=null,script: JSONObject?=null) {
@@ -140,12 +152,15 @@ private val destinations=listOf(
     }
     Scaffold(
         containerColor=MaterialTheme.colorScheme.background,
-        topBar={ TopAppBar(title={ Column { Text("Cronmaster"); if(vm.connected) Text(destinations[tab].title,style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant) } },
-            actions={ if(vm.connected) ActionIcon(Icons.Default.Refresh,"Actualizar datos",enabled) {
-                vm.work { vm.refresh(); if(tab==2) vm.backups=vm.request("backups").rows(); vm.message="Datos actualizados" }
-            } }) },
+        topBar={ CronmasterAppBar(
+            appearance=appearance,
+            section=if(appearanceDialog) "Ajustes" else if(vm.connected) destinations[tab].title else "Acceso",
+            onOpenSettings={openSettings()},
+            onRefresh=if(vm.connected) { { vm.work { vm.refresh(); if(tab==2) vm.backups=vm.request("backups").rows(); vm.message="Datos actualizados" } } } else null,
+            refreshEnabled=enabled
+        ) },
         bottomBar={ if(vm.connected) NavigationBar {
-            destinations.forEachIndexed { index,d -> NavigationBarItem(selected=tab==index,onClick={tab=index; if(index==2) vm.loadBackups()},icon={Icon(d.icon,d.title)},label=null) }
+            destinations.take(4).forEachIndexed { index,d -> NavigationBarItem(selected=tab==index,onClick={tab=index; lastTab=index; if(index==2) vm.loadBackups()},icon={Icon(d.icon,d.title)},label=null) }
         } },
         floatingActionButton={ if(vm.connected && tab in 0..1) FloatingActionButton(onClick={if(enabled) { if(tab==0) openJob() else openScript() }}) { Icon(Icons.Default.Add,if(tab==0) "Nueva tarea" else "Nuevo script") } }
     ) { padding ->
@@ -268,6 +283,7 @@ private val destinations=listOf(
                         } } }
                     }
                     4 -> Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+                        AppearanceSettings(appearance)
                         Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                             Text("Conexión",style=MaterialTheme.typography.titleMedium)
                             Text(vm.url,style=MaterialTheme.typography.bodySmall)
@@ -337,4 +353,5 @@ private val destinations=listOf(
     } }
     output?.let { text -> TerminalDialog("Log de ejecución",text,"Salida guardada",close={output=null}) }
     runId?.let { id -> LiveTerminal(vm,id) { runId=null } }
+    if(appearanceDialog) AppearanceSettingsDialog(appearance) { appearanceDialog=false }
 }
