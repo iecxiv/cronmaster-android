@@ -1,11 +1,10 @@
 # Cronmaster Android App
-Cliente **no oficial** Android nativo de **Cronmaster** en Kotlin y Jetpack Compose, con extensión de servidor y guías de instalación y actualización.
 
 An **unofficial**, native Android client for **Cronmaster**, built with Kotlin and Jetpack Compose, including a server extension and installation and update guides.
 
 ## 
 
-Incluye tareas, scripts, backups, estadísticas, acceso cifrado con Android Keystore, iconos, salud de tareas y visor terminal. Verde indica resultado correcto, rojo fallo y gris ausencia de resultado verificable. La sesión se restaura; el servidor puede revocar credenciales. HTTPS recomendado; OIDC no implementado. Posibilidad de manejar multiples servidores.
+Includes tasks, scripts, backups, statistics, encrypted access via Android Keystore, icons, task health, and a terminal viewer. Green indicates a successful result, red indicates a failure, and gray indicates the absence of a verifiable result. Sessions are restored; the server can revoke credentials. HTTPS is recommended; OIDC is not implemented. Supports managing multiple servers.
 
 ## Build from source
 
