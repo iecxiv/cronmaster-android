@@ -50,14 +50,16 @@ private val destinations=listOf(
     Destination("Backups",Icons.Default.Backup),Destination("Sistema",Icons.Default.Dns),Destination("Ajustes",Icons.Default.Settings)
 )
 @Composable private fun ActionIcon(icon: ImageVector,label: String,enabled: Boolean=true,tint: Color=LocalContentColor.current,onClick: () -> Unit) {
-    if (LocalCardActionLabels.current) {
-        CompactCardAction(icon, label, enabled, tint, onClick)
+    val rowScope = LocalCardActionRowScope.current
+    if (rowScope != null) {
+        with(rowScope) {
+            CompactCardAction(icon, label, enabled, tint, onClick)
+        }
     } else {
         IconButton(onClick=onClick,enabled=enabled) { Icon(icon,contentDescription=label,tint=if(enabled) tint else tint.copy(alpha=.35f)) }
     }
 }
-@OptIn(ExperimentalLayoutApi::class)
-@Composable private fun Actions(content: @Composable FlowRowScope.() -> Unit) {
+@Composable private fun Actions(content: @Composable RowScope.() -> Unit) {
     CardActions(content)
 }
 @Composable private fun WideModal(title: String,close: () -> Unit,content: @Composable ColumnScope.() -> Unit) {

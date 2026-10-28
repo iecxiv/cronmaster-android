@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -23,29 +22,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-internal val LocalCardActionLabels = staticCompositionLocalOf { false }
-private val LocalCardActionWidth = staticCompositionLocalOf { 44.dp }
+internal val LocalCardActionRowScope = staticCompositionLocalOf<RowScope?> { null }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun CardActions(content: @Composable FlowRowScope.() -> Unit) {
-    BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 6.dp)) {
-        val density = LocalDensity.current
-        // Round down in physical pixels so eight slots cannot wrap due to rounding.
-        val slotWidth = with(density) {
-            (constraints.maxWidth / 8).coerceAtLeast(1).toDp()
-        }.coerceAtMost(44.dp)
-        CompositionLocalProvider(
-            LocalCardActionLabels provides true,
-            LocalCardActionWidth provides slotWidth
-        ) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-                maxItemsInEachRow = 8,
-                content = content
-            )
+internal fun CardActions(content: @Composable RowScope.() -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val rowScope = this
+        CompositionLocalProvider(LocalCardActionRowScope provides rowScope) {
+            content(rowScope)
         }
     }
 }
@@ -73,7 +61,7 @@ private fun compactActionLabel(label: String): String = when (label) {
 }
 
 @Composable
-internal fun CompactCardAction(
+internal fun RowScope.CompactCardAction(
     icon: ImageVector,
     label: String,
     enabled: Boolean,
@@ -83,7 +71,8 @@ internal fun CompactCardAction(
     val color = if (enabled) tint else tint.copy(alpha = tint.alpha * 0.35f)
     Column(
         modifier = Modifier
-            .width(LocalCardActionWidth.current)
+            .weight(1f, fill = false)
+            .widthIn(max = 44.dp)
             .heightIn(min = 52.dp)
             .clip(MaterialTheme.shapes.small)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
