@@ -9,10 +9,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,7 +51,11 @@ internal fun CronmasterAppBar(
     onOpenSettings: () -> Unit,
     onRefresh: (() -> Unit)?,
     refreshEnabled: Boolean,
-    connectionStatus: ConnectionStatus = ConnectionStatus.UNKNOWN
+    connectionStatus: ConnectionStatus = ConnectionStatus.UNKNOWN,
+    serverCount: Int = 1,
+    serverName: String? = null,
+    onSwitchServer: (() -> Unit)? = null,
+    switchEnabled: Boolean = true
 ) {
     val statusColor = when (connectionStatus) {
         ConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
@@ -66,7 +70,7 @@ internal fun CronmasterAppBar(
     TopAppBar(
         navigationIcon = {
             IconButton(onClick = onOpenSettings, modifier = Modifier.semantics { contentDescription = "Abrir ajustes" }) {
-                CronmasterBrandIcon(appearance.iconBitmap, Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)))
+                CronmasterBrandIcon(appearance.iconBitmap, Modifier.size(36.dp).clip(CircleShape))
             }
         },
         title = {
@@ -79,10 +83,15 @@ internal fun CronmasterAppBar(
                         liveRegion = LiveRegionMode.Polite
                     })
                 }
-                Text(section, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                Text(if (serverCount > 1 && !serverName.isNullOrBlank()) "$section · $serverName" else section,
+                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         },
         actions = {
+            if (serverCount > 1 && onSwitchServer != null) IconButton(onClick = onSwitchServer, enabled = switchEnabled) {
+                Icon(Icons.Default.SwapHoriz, "Cambiar servidor")
+            }
             if (onRefresh != null) IconButton(onClick = onRefresh, enabled = refreshEnabled) {
                 Icon(Icons.Default.Refresh, "Actualizar datos")
             }
