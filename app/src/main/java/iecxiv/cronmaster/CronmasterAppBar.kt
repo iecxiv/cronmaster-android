@@ -58,6 +58,7 @@ internal fun CronmasterAppBar(
     switchEnabled: Boolean = true
 ) {
     val mesh = LocalThemeStyle.current == ThemeStyle.MESHFABRIC
+    val showServerActions = section != "Ajustes"
     val statusColor = when (connectionStatus) {
         ConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
         ConnectionStatus.CONNECTING -> Color(0xFFFFC107)
@@ -90,10 +91,10 @@ internal fun CronmasterAppBar(
             }
         },
         actions = {
-            if (serverCount > 1 && onSwitchServer != null) IconButton(onClick = onSwitchServer, enabled = switchEnabled) {
+            if (showServerActions && serverCount > 1 && onSwitchServer != null) IconButton(onClick = onSwitchServer, enabled = switchEnabled) {
                 Icon(Icons.Default.SwapHoriz, "Cambiar servidor")
             }
-            if (onRefresh != null) IconButton(onClick = onRefresh, enabled = refreshEnabled) {
+            if (showServerActions && onRefresh != null) IconButton(onClick = onRefresh, enabled = refreshEnabled) {
                 Icon(Icons.Default.Refresh, "Actualizar datos")
             }
             if (!appearance.hideSettingsIcon) IconButton(onClick = onOpenSettings) {
