@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -120,6 +121,10 @@ private val destinations=listOf(
     var addServerDialog by remember { mutableStateOf(false) }
     var serverSwitcher by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
+    var scriptQuery by remember { mutableStateOf("") }
+    val context=LocalContext.current
+    val listPreferences=remember(context) { context.applicationContext.getSharedPreferences("list_preferences",0) }
+    var nonZeroFirst by remember(listPreferences) { mutableStateOf(listPreferences.getBoolean("tasks_non_zero_first",false)) }
     var selectedUser by remember { mutableStateOf("") }
     var filters by remember { mutableStateOf(false) }
     var editor by remember { mutableStateOf<Editor?>(null) }
@@ -171,7 +176,12 @@ private val destinations=listOf(
             serverCount=vm.serverProfiles.size,
             serverName=vm.activeServerName,
             onSwitchServer={serverSwitcher=true},
-            switchEnabled=enabled
+            switchEnabled=enabled,
+            nonZeroFirst=nonZeroFirst,
+            onNonZeroFirstChange=if(vm.connected && tab==0 && !appearanceDialog) { { selected ->
+                nonZeroFirst=selected
+                listPreferences.edit().putBoolean("tasks_non_zero_first",selected).apply()
+            } } else null
         ) },
         bottomBar={ if(vm.connected) NavigationBar {
             destinations.take(4).forEachIndexed { index,d -> NavigationBarItem(selected=tab==index,onClick={tab=index; lastTab=index; if(index==2) vm.loadBackups()},icon={Icon(d.icon,d.title)},label=null) }
@@ -209,7 +219,8 @@ private val destinations=listOf(
                             FilterChip(selected=selectedUser.isEmpty(),onClick={selectedUser=""},label={Text("Todos")})
                             vm.users.forEach { u -> FilterChip(selected=selectedUser==u,onClick={selectedUser=u},label={Text(u)}) }
                         }
-                        val visible=vm.jobs.filter { (selectedUser.isEmpty() || it.optString("user")==selectedUser) && it.toString().contains(query,true) }
+                        val filtered=vm.jobs.filter { (selectedUser.isEmpty() || it.optString("user")==selectedUser) && it.toString().contains(query,true) }
+                        val visible=if(nonZeroFirst) filtered.sortedBy { if(it.optJSONObject("logError")?.intOrNull("latestExitCode")==0) 1 else 0 } else filtered
                         Text("${visible.size} tareas",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
                         LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=90.dp)) {
                             if(visible.isEmpty()) item { Text("No hay tareas que mostrar",modifier=Modifier.padding(16.dp)) }
@@ -250,9 +261,15 @@ private val destinations=listOf(
                             }
                         }
                     }
-                    1 -> LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=90.dp)) {
-                        if(vm.scripts.isEmpty()) item { Text("Crea tu primer script con el botón +") }
-                        items(vm.scripts,key={it.getString("id")}) { script ->
+                    1 -> {
+                        OutlinedTextField(scriptQuery,{scriptQuery=it},label={Text("Buscar scripts")},leadingIcon={Icon(Icons.Default.Search,null)},singleLine=true,modifier=Modifier.fillMaxWidth(),shape=MaterialTheme.shapes.large)
+                        val visibleScripts=vm.scripts.filter { script ->
+                            listOf("name","description","filename").any { script.optString(it).contains(scriptQuery,true) }
+                        }
+                        Text("${visibleScripts.size} scripts",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=90.dp)) {
+                        if(visibleScripts.isEmpty()) item { Text(if(vm.scripts.isEmpty()) "Crea tu primer script con el botón +" else "No hay scripts que mostrar",modifier=Modifier.padding(16.dp)) }
+                        items(visibleScripts,key={it.getString("id")}) { script ->
                             val id=script.getString("id")
                             CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                                 Text(script.optString("name"),style=MaterialTheme.typography.titleMedium)
@@ -267,6 +284,7 @@ private val destinations=listOf(
                                 }
                             } }
                         }
+                    }
                     }
                     2 -> {
                         Actions {
@@ -286,14 +304,14 @@ private val destinations=listOf(
                             } } }
                         }
                     }
-                    3 -> LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=16.dp)) {
+                    3 -> LazyColumn(Modifier.weight(1f).padding(top=8.dp),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=16.dp)) {
                         items(vm.stats.keys().asSequence().toList()) { key -> CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                             Text(key.replaceFirstChar { it.uppercase() },style=MaterialTheme.typography.titleMedium)
                             val value=vm.stats.opt(key)
                             if(value is JSONObject) StatTree(value) else Text(value.toString(),style=MaterialTheme.typography.headlineSmall)
                         } } }
                     }
-                    4 -> Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+                    4 -> Column(Modifier.weight(1f).padding(top=8.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
                         AppSettingsContent(vm,appearance,themes,display,onAddServer={addServerDialog=true})
                     }
                 }
@@ -352,3 +370,4 @@ private val destinations=listOf(
     if(serverSwitcher && vm.serverProfiles.size>1) ServerSwitcherDialog(vm) { serverSwitcher=false }
     if(addServerDialog) AddServerDialog(vm) { addServerDialog=false }
 }
+
