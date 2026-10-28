@@ -17,10 +17,10 @@ import androidx.compose.ui.window.DialogProperties
 @Composable
 internal fun AppSettingsContent(vm: MainViewModel,appearance: AppAppearanceViewModel,themes: ThemeStyleViewModel,display: DisplayModeViewModel,onAddServer: () -> Unit) {
     Column(verticalArrangement=Arrangement.spacedBy(16.dp)) {
+        AppearanceNotices(appearance)
         AppearanceSettings(appearance,includeSettingsButton=false)
         ApplicationThemeSettings(themes,display)
         SettingsButtonVisibilityCard(appearance)
-        AppearanceNotices(appearance)
         ServerSettingsCard(vm,onAddServer)
         ActiveSessionSettings(vm)
         SharedSettingsCard {
