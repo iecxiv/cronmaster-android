@@ -26,6 +26,8 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
     var busy by mutableStateOf(false)
     var message by mutableStateOf("")
     var eventState by mutableStateOf("Conectando")
+    internal var connectionStatus by mutableStateOf(ConnectionStatus.UNKNOWN)
+        private set
     var dark by mutableStateOf(preferences.getBoolean("dark",true))
     var minimal by mutableStateOf(preferences.getBoolean("minimal",false))
     var human by mutableStateOf(preferences.getBoolean("human",true))
@@ -46,9 +48,10 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
                     api=createApi(saved)
                     // Conserva el acceso lógico incluso si la red no está disponible.
                     connected=true
+                    connectionStatus=ConnectionStatus.CONNECTING
                     try { refresh() }
                     catch(e: CancellationException) { throw e }
-                    catch(e: Exception) { showError(e) }
+                    catch(e: Exception) { connectionStatus=ConnectionStatus.UNKNOWN; showError(e) }
                 }
             } catch(e: CancellationException) { throw e }
             catch(e: Exception) { message="No se pudo abrir el acceso cifrado: ${e.message}. Puedes volver a identificarte o borrar el acceso local." }
@@ -74,12 +77,13 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
         check(token.isNotBlank() || password.isNotBlank()) { "Introduce contraseña o API key" }
         val config=obj("url" to url.trim().trimEnd('/'),"token" to token,"password" to password,"http" to allowHttp)
         val candidate=createApi(config)
+        connectionStatus=ConnectionStatus.CONNECTING
         try {
             check(candidate.native("capabilities").optInt("version")==1) { "Extensión api/native incompatible" }
             config.put("cookies",candidate.cookieSnapshot())
             withContext(Dispatchers.IO) { vault.save(config) }
             candidate.enablePersistence()
-        } catch(e: Exception) { candidate.shutdown(); throw e }
+        } catch(e: Exception) { candidate.shutdown(); connectionStatus=ConnectionStatus.UNKNOWN; throw e }
         api?.shutdown(); api=candidate; connected=true
         password=""; token=""
         refresh()
@@ -110,11 +114,19 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
         val current=api ?: return@coroutineScope
         var source: EventSource?=null
         var tick=0
+        var generation=0
         fun subscribe() {
+            val subscription=++generation
+            connectionStatus=ConnectionStatus.CONNECTING
             source?.cancel()
             source=current.events(
-                { launch { refreshQuietly() } },
-                { text -> launch { eventState=text } }
+                { launch { if(api===current && generation==subscription && stream===source) refreshQuietly() } },
+                { text -> launch {
+                    if(api===current && generation==subscription && stream===source) {
+                        eventState=text
+                        connectionStatus=if(text=="Conexión en vivo") ConnectionStatus.CONNECTED else ConnectionStatus.UNKNOWN
+                    }
+                } }
             )
             stream=source
         }
@@ -125,7 +137,11 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
                 delay(10000)
                 if(++tick%6==0) subscribe()
             }
-        } finally { source?.cancel(); if(stream===source) stream=null }
+        } finally {
+            ++generation
+            source?.cancel()
+            if(stream===source) { stream=null; connectionStatus=ConnectionStatus.UNKNOWN }
+        }
     }
     fun action(op: String,args: JSONObject=JSONObject(),done: (JSONObject) -> Unit={})=work {
         val result=request(op,args)
@@ -144,7 +160,7 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
         // Primero impide que una respuesta tardía vuelva a guardar cookies.
         old?.disablePersistence(); old?.cancelCalls(); stream?.cancel(); stream=null
         withContext(Dispatchers.IO) { vault.clear() }
-        api=null; connected=false; token=""; password=""; url=""
+        api=null; connected=false; connectionStatus=ConnectionStatus.UNKNOWN; token=""; password=""; url=""
         jobs=emptyList(); scripts=emptyList(); backups=emptyList(); snippets=emptyList(); stats=JSONObject(); users=emptyList()
         draft=obj("name" to "","description" to "","content" to "#!/bin/bash\n")
         message="Acceso eliminado del dispositivo"
@@ -154,11 +170,11 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
     }
     fun editConnection()=work {
         val saved=withContext(Dispatchers.IO) { vault.load() }
-        stream?.cancel(); api?.shutdown(); api=null; connected=false
+        stream?.cancel(); api?.shutdown(); api=null; connected=false; connectionStatus=ConnectionStatus.UNKNOWN
         url=saved?.optString("url") ?: url
         allowHttp=saved?.optBoolean("http") ?: allowHttp
         token=""; password=""
         message="Introduce el nuevo acceso. El anterior se conserva cifrado hasta que guardes uno válido o cierres sesión."
     }
-    override fun onCleared() { stream?.cancel(); api?.shutdown(); super.onCleared() }
+    override fun onCleared() { stream?.cancel(); stream=null; connectionStatus=ConnectionStatus.UNKNOWN; api?.shutdown(); super.onCleared() }
 }

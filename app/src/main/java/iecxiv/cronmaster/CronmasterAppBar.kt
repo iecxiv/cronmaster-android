@@ -6,19 +6,25 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -44,8 +50,19 @@ internal fun CronmasterAppBar(
     section: String,
     onOpenSettings: () -> Unit,
     onRefresh: (() -> Unit)?,
-    refreshEnabled: Boolean
+    refreshEnabled: Boolean,
+    connectionStatus: ConnectionStatus = ConnectionStatus.UNKNOWN
 ) {
+    val statusColor = when (connectionStatus) {
+        ConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
+        ConnectionStatus.CONNECTING -> Color(0xFFFFC107)
+        ConnectionStatus.UNKNOWN -> Color(0xFF8995A8)
+    }
+    val statusLabel = when (connectionStatus) {
+        ConnectionStatus.CONNECTED -> "Conectado"
+        ConnectionStatus.CONNECTING -> "Conectando"
+        ConnectionStatus.UNKNOWN -> "Sin estado verificable"
+    }
     TopAppBar(
         navigationIcon = {
             IconButton(onClick = onOpenSettings, modifier = Modifier.semantics { contentDescription = "Abrir ajustes" }) {
@@ -54,7 +71,14 @@ internal fun CronmasterAppBar(
         },
         title = {
             Column {
-                Text(appearance.displayName, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(appearance.displayName, modifier = Modifier.weight(1f, fill = false), fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Spacer(Modifier.width(8.dp))
+                    Box(Modifier.size(10.dp).background(statusColor, CircleShape).semantics {
+                        contentDescription = "Estado de conexión: $statusLabel"
+                        liveRegion = LiveRegionMode.Polite
+                    })
+                }
                 Text(section, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
         },
