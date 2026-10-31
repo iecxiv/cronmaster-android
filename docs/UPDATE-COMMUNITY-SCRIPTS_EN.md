@@ -40,6 +40,41 @@ The script is [scripts/update-cronmaster-with-native.sh](../scripts/update-cronm
 
 Run inside the LXC as root. Requires Node 22/Corepack, git, rsync, curl, flock, timeout, sha256sum, awk, perl, grep, tail and systemctl. `/usr/local/bin/update_cronmaster` and a reviewed checkout at `/root/cronmaster-android`, containing the adapter and `scripts/probe-native.cjs`, must exist. It does not install packages, change Node or automatically git pull. It uses Yarn 1.22.22 through Corepack. The 4 GiB heap setting does not limit total build memory.
 
+#### Prerequisite: prepare the checkout and check the files
+
+Having builds in `/opt/cronmaster-native-build` does not imply that `/root/cronmaster-android` exists. Before installing or running the cronjob, run this block. It clones dev only if the destination does not exist; an existing directory is not overwritten or automatically git pulled. It checks that the adapter and probe are nonempty and displays the checkout commit.
+
+```bash
+bash <<'BASH'
+set -Eeuo pipefail
+
+REPO=/root/cronmaster-android
+
+if [[ ! -e "$REPO" ]]; then
+    git clone --depth 1 --branch dev \
+        https://github.com/iecxiv/cronmaster-android.git \
+        "$REPO"
+fi
+
+for file in \
+    "$REPO/server-extension/app/api/native/route.ts" \
+    "$REPO/scripts/probe-native.cjs"; do
+    if [[ ! -s "$file" ]]; then
+        echo "ERROR: missing or empty: $file"
+        echo "The existing directory has not been overwritten."
+        exit 1
+    fi
+done
+
+echo 'OK: adapter and probe are available.'
+git -C "$REPO" rev-parse --short HEAD
+BASH
+```
+
+Copy only the code block contents. The git clone URL must be literal text without brackets or parentheses: do not paste a Markdown link formatted as `[URL](URL)` into the command. This step downloads the checkout if missing, but does not run the main updater, build or restart Cronmaster.
+
+If these files are missing, the update script can exit immediately with code 1 and no output because its `test -s` checks precede the main updater. If the directory already exists but is incomplete or is not a valid Git checkout, stop and inspect it; this block does not automatically repair or delete it.
+
 Review the checkout revision and local changes before updating it. Install the script from it:
 
 ```bash
