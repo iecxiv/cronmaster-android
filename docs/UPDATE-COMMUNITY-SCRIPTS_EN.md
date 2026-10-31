@@ -71,7 +71,7 @@ git -C "$REPO" rev-parse --short HEAD
 BASH
 ```
 
-Copy only the code block contents. The git clone URL must be literal text without brackets or parentheses: do not paste a Markdown link formatted as `[URL](URL)` into the command. This step downloads the checkout if missing, but does not run the main updater, build or restart Cronmaster.
+Copy only the code block contents. This step downloads the checkout if missing, but does not run the main updater, build or restart Cronmaster.
 
 If these files are missing, the update script can exit immediately with code 1 and no output because its `test -s` checks precede the main updater. If the directory already exists but is incomplete or is not a valid Git checkout, stop and inspect it; this block does not automatically repair or delete it.
 
