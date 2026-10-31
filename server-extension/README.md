@@ -1,5 +1,7 @@
 # Extensión API nativa
 
+Español | [English](README_EN.md)
+
 El adaptador completo está en [app/api/native/route.ts](app/api/native/route.ts). El archivo corregido aportado por el usuario coincide byte por byte con la copia existente en dev al preparar esta documentación. Incluye `expression.next().toDate().toISOString()` para las próximas ejecuciones.
 
 ## Instalaciones de Proxmox Community Scripts

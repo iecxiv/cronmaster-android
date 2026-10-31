@@ -1,5 +1,7 @@
 # Compilar Cronmaster con la extensión
 
+Español | [English](COMPILAR-SERVIDOR_EN.md)
+
 Paso común para ambas modalidades. Ejecuta como root en la máquina donde instalaste Community Scripts: dentro del LXC si corresponde. Necesitas git, rsync, curl, Node y Corepack. La base conocida usó Node 22.23.4 y Yarn 1.22.22. Revisa los requisitos de cada release antes de cambiar herramientas globalmente.
 
 Haz backup/snapshot de datos y crontabs. No ejecutes dos actualizadores a la vez. Desactiva el job oficial de actualización de Cronmaster antes de desplegar; podría sustituir la extensión. No detengas cron entero.

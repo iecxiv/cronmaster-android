@@ -1,5 +1,7 @@
 # Extensión manteniendo el código original
 
+Español | [English](SERVIDOR-PARALELO_EN.md)
+
 Alternativa documentada, no el despliegue inicial confirmado. Mantiene el código /opt/cronmaster, su .env y su unidad. Instala otro runtime de ruta FIJA y otro servicio. Comparte scripts/data/snippets y crontabs: las escrituras de Android afectan a los mismos datos. Para aislamiento total usa otra VM/LXC. Solo una instancia debe quedar activa.
 
 Haz backup/snapshot y completa [COMPILAR-SERVIDOR](COMPILAR-SERVIDOR.md). Desde root:

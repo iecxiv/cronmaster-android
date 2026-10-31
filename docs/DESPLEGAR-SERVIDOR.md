@@ -1,5 +1,7 @@
 # Despliegue común del candidato compilado
 
+Español | [English](DESPLEGAR-SERVIDOR_EN.md)
+
 Primero completa COMPILAR-SERVIDOR.md y selecciona las variables de tu modalidad en SERVIDOR-REEMPLAZO.md o SERVIDOR-PARALELO.md. Ejecuta desde SSH/consola, no como hijo del servicio que se va a detener. No hay cero downtime: se para brevemente la interfaz, no cron ni sus jobs.
 
 El backup siguiente es de código y configuración, no un backup completo de datos/crontabs. Las exclusiones conservan .env, scripts, data y snippets. El rollback intenta recuperar código; no revierte migraciones ni garantiza recuperación ante fallo de disco o apagado.

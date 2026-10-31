@@ -1,5 +1,7 @@
 # Extensión reemplazando el código de la instancia original
 
+Español | [English](SERVIDOR-REEMPLAZO_EN.md)
+
 Modalidad realizada en la instalación del usuario. Mantiene /opt/cronmaster, su .env, cronmaster.service y el puerto configurado, pero SUSTITUYE el código oficial por el standalone con extensión. No es una instalación aislada.
 
 1. Backup/snapshot de datos y crontabs; los backups contienen secretos.
