@@ -1,5 +1,7 @@
 # Actualizar la modalidad de reemplazo
 
+Español | [English](UPDATE-REEMPLAZO_EN.md)
+
 Aplica a /opt/cronmaster y cronmaster.service.
 
 1. Revisa las notas de la release, Node y posibles migraciones. Haz backup/snapshot de datos y crontabs.

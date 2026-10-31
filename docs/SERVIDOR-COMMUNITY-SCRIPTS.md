@@ -1,5 +1,7 @@
 # Extensión sobre Cronmaster instalado con Proxmox Community Scripts
 
+Español | [English](SERVIDOR-COMMUNITY-SCRIPTS_EN.md)
+
 Tercera variante, basada en el despliegue funcional comunicado por el usuario. Se aplica a la instalación existente en `/opt/cronmaster` cuyo `cronmaster.service` ejecuta `server.js`. Compila una copia separada y sustituye únicamente el runtime activo conservando configuración y datos. No crea otro servicio ni otra instancia. No cambia las guías de sustitución o instalación paralela. Los bloques generalizados siguientes requieren validación en tu servidor.
 
 Origen de la instalación: https://community-scripts.org/scripts/cronmaster y https://github.com/community-scripts/ProxmoxVE/blob/main/tools/addon/cronmaster.sh. No vuelvas a ejecutar el instalador para añadir la extensión.

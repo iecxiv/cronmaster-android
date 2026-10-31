@@ -1,5 +1,7 @@
 # Actualizar la extensión en una instalación de Community Scripts
 
+Español | [English](UPDATE-COMMUNITY-SCRIPTS_EN.md)
+
 Aplica exclusivamente a la [variante Community Scripts](SERVIDOR-COMMUNITY-SCRIPTS.md): `/opt/cronmaster` y `cronmaster.service`. No modifica las guías de sustitución ni de instalación paralela.
 
 ## Reaplicar la extensión a la misma versión

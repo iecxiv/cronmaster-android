@@ -1,5 +1,7 @@
 # Actualizar la modalidad paralela
 
+Español | [English](UPDATE-PARALELO_EN.md)
+
 Aplica solo a /opt/cronmaster-native-parallel/app y cronmaster-native.service. No uses el despliegue de reemplazo.
 
 1. Backup/snapshot de datos y crontabs, y revisión de requisitos/migraciones de la nueva release.
