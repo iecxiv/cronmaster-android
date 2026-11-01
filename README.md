@@ -94,4 +94,10 @@ The user reported a working Community Scripts deployment and supplied the steps.
 
 Do not publish .env, keys, cookies, backups or Android signing material. The server may run as root: use authentication and TLS. Examples do not replace data and crontab backups.
 
-Original server: https://github.com/fccview/cronmaster (AGPL-3.0). Independent project, not affiliated. No additional license has been assigned to this repository.
+Original server: https://github.com/fccview/cronmaster (AGPL-3.0). Independent project, not affiliated.
+
+## License
+
+This project is licensed under the GNU Affero General Public License, version 3 (AGPL-3.0), the same license used by fccview/cronmaster. See [LICENSE](LICENSE) for the full terms.
+
+Third-party components retain their respective licenses and copyright notices. This project's license does not replace those notices or claim ownership of third-party code.
