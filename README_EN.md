@@ -1,6 +1,6 @@
 # Cronmaster Android App
 
-[Español](README.md) | English
+English | [Español](README_ES.md)
 
 An unofficial native Android client for Cronmaster, built with Kotlin and Jetpack Compose. Includes a server extension and installation and update guides.
 
