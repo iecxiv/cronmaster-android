@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.WrapText
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -78,7 +79,7 @@ private fun lineColor(line: String): Color=when {
                     Text("$size",color=Muted,fontSize=11.sp)
                     IconButton(onClick={size=(size+1).coerceAtMost(22)}) { Icon(Icons.Default.Add,"Aumentar texto",tint=Blue) }
                     IconToggleButton(checked=follow,onCheckedChange={follow=it}) { Icon(Icons.Default.VerticalAlignBottom,"Seguir nuevas líneas",tint=if(follow) Green else Muted) }
-                    IconToggleButton(checked=wrap,onCheckedChange={wrap=it}) { Icon(Icons.Default.WrapText,"Ajustar líneas",tint=if(wrap) Green else Muted) }
+                    IconToggleButton(checked=wrap,onCheckedChange={wrap=it}) { Icon(Icons.AutoMirrored.Filled.WrapText,"Ajustar líneas",tint=if(wrap) Green else Muted) }
                 }
                 if(error.isNotBlank()) Text(error,color=Red,modifier=Modifier.fillMaxWidth().background(Red.copy(alpha=.1f)).padding(10.dp),fontSize=12.sp)
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
