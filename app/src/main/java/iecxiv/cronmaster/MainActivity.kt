@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -130,7 +132,7 @@ private val destinations=listOf(
             val valueWidth=((maxWidth-gap).coerceAtLeast(0.dp))*2f/3f
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(gap),verticalAlignment=Alignment.Top) {
                 Text(prefix+key,modifier=Modifier.width(labelWidth),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,softWrap=true)
-                Box(Modifier.width(valueWidth)) { SystemStatValue(value.toString()) }
+                Box(Modifier.width(valueWidth)) { SystemStatValue(value?.toString() ?: "null") }
             }
         }
     }
@@ -235,7 +237,7 @@ private val destinations=listOf(
                 Field("API key (alternativa)",vm.token,true) { vm.token=it }
                 Row(verticalAlignment=Alignment.CenterVertically) { Checkbox(vm.allowHttp,{vm.allowHttp=it}); Text("Permitir HTTP sin cifrado",style=MaterialTheme.typography.bodySmall) }
                 if(vm.allowHttp) Text("HTTP expone el acceso en la red. Utiliza HTTPS siempre que sea posible.",color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)
-                Button(onClick={vm.connect()},enabled=enabled && vm.url.isNotBlank(),modifier=Modifier.fillMaxWidth()) { Icon(Icons.Default.Login,null); Spacer(Modifier.width(8.dp)); Text("Conectar y guardar") }
+                Button(onClick={vm.connect()},enabled=enabled && vm.url.isNotBlank(),modifier=Modifier.fillMaxWidth()) { Icon(Icons.AutoMirrored.Filled.Login,null); Spacer(Modifier.width(8.dp)); Text("Conectar y guardar") }
                 TextButton(onClick={confirm("Borrar acceso local",if(vm.activeServerId==null) "Se eliminarán los accesos guardados de este dispositivo." else "Se eliminará solo el acceso del servidor seleccionado. Los demás se conservarán.") { vm.logout() }},enabled=enabled) { Text("Borrar acceso guardado") }
             }
             else {
@@ -281,7 +283,7 @@ private val destinations=listOf(
                                         ActionIcon(Icons.Default.ContentCopy,"Clonar tarea",enabled) {
                                             editor=Editor("Clonar tarea",obj("comment" to (job.optString("comment")+" (copia)"))) { data -> data.put("id",id); vm.action("job.clone",data) { editor=null } }
                                         }
-                                        ActionIcon(Icons.Default.ReceiptLong,"Alternar logging",enabled) { confirm("Cambiar logging",id) { vm.action("job.logging",args) } }
+                                        ActionIcon(Icons.AutoMirrored.Filled.ReceiptLong,"Alternar logging",enabled) { confirm("Cambiar logging",id) { vm.action("job.logging",args) } }
                                         ActionIcon(Icons.Default.Backup,"Guardar backup de tarea",enabled) { confirm("Guardar backup",id) { vm.action("job.backup",args) } }
                                         ActionIcon(Icons.Default.Delete,"Eliminar tarea",enabled,MaterialTheme.colorScheme.error) { confirm("Eliminar tarea",job.toString(2)) { vm.action("job.delete",args) } }
                                     }
@@ -342,7 +344,7 @@ private val destinations=listOf(
                             if(value is JSONObject) StatTree(value) else BoxWithConstraints(Modifier.fillMaxWidth()) {
                                 val valueWidth=maxWidth*2f/3f
                                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End) {
-                                    Box(Modifier.width(valueWidth)) { SystemStatValue(value.toString()) }
+                                    Box(Modifier.width(valueWidth)) { SystemStatValue(value?.toString() ?: "null") }
                                 }
                             }
                         } } }

@@ -9,7 +9,7 @@ fun obj(vararg values: Pair<String, Any?>): JSONObject = JSONObject().apply {
 }
 fun JSONArray.objects(): List<JSONObject> = (0 until length()).mapNotNull { optJSONObject(it) }
 fun JSONObject.rows(): List<JSONObject> = optJSONArray("data")?.objects() ?: emptyList()
-fun JSONObject.intOrNull(key: String): Int? = if (!has(key) || isNull(key)) null else opt(key).toString().toIntOrNull()
+fun JSONObject.intOrNull(key: String): Int? = if (!has(key) || isNull(key)) null else opt(key)?.toString()?.toIntOrNull()
 suspend fun <T> safely(block: suspend () -> T): Result<T> = try {
     Result.success(block())
 } catch(e: CancellationException) { throw e } catch(e: Exception) { Result.failure(e) }

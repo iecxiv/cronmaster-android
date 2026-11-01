@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -56,7 +57,7 @@ private fun ActiveSessionSettings(vm: MainViewModel) {
                     Icon(Icons.Default.Edit,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.change_access))
                 }
                 OutlinedButton(onClick={logout=true},enabled=enabled,modifier=Modifier.weight(1f)) {
-                    Icon(Icons.Default.Logout,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.logout))
+                    Icon(Icons.AutoMirrored.Filled.Logout,null,Modifier.size(18.dp));Spacer(Modifier.width(6.dp));Text(stringResource(R.string.logout))
                 }
             }
         }
