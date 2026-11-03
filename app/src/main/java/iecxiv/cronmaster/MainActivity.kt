@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -50,13 +51,13 @@ class MainActivity: ComponentActivity() {
         }
     }
 }
-private data class Editor(val title: String,val initial: JSONObject,val save: (JSONObject) -> Unit)
+private data class Editor(val title: Int,val initial: JSONObject,val save: (JSONObject) -> Unit)
 private data class Confirmation(val title: String,val detail: String,val run: () -> Unit)
 private data class LogHistory(val id: String,val name: String,val rows: List<JSONObject>)
-private data class Destination(val title: String,val icon: ImageVector)
+private data class Destination(val title: Int,val icon: ImageVector)
 private val destinations=listOf(
-    Destination("Tareas",Icons.Default.Schedule),Destination("Scripts",Icons.Default.Code),
-    Destination("Backups",Icons.Default.Backup),Destination("Sistema",Icons.Default.Dns),Destination("Ajustes",Icons.Default.Settings)
+    Destination(R.string.section_jobs,Icons.Default.Schedule),Destination(R.string.section_scripts,Icons.Default.Code),
+    Destination(R.string.section_backups,Icons.Default.Backup),Destination(R.string.section_system,Icons.Default.Dns),Destination(R.string.settings,Icons.Default.Settings)
 )
 @Composable private fun ActionIcon(icon: ImageVector,label: String,enabled: Boolean=true,tint: Color=LocalContentColor.current,onClick: () -> Unit) {
     val rowScope = LocalCardActionRowScope.current
@@ -77,7 +78,7 @@ private val destinations=listOf(
             Column(Modifier.fillMaxSize().padding(16.dp)) {
                 Row(verticalAlignment=Alignment.CenterVertically) {
                     Text(title,style=MaterialTheme.typography.titleLarge,modifier=Modifier.weight(1f))
-                    ActionIcon(Icons.Default.Close,"Cerrar",onClick=close)
+                    ActionIcon(Icons.Default.Close,stringResource(R.string.close),onClick=close)
                 }
                 HorizontalDivider()
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top=12.dp),verticalArrangement=Arrangement.spacedBy(12.dp),content=content)
@@ -85,10 +86,10 @@ private val destinations=listOf(
         }
     }
 }
-@Composable private fun Field(label: String,value: String,secret: Boolean=false,onChange: (String) -> Unit) {
+@Composable private fun Field(label: String,value: String,secret: Boolean=false,multiline: Boolean=false,code: Boolean=false,onChange: (String) -> Unit) {
     if(secret) OutlinedTextField(value,onChange,label={Text(label)},visualTransformation=PasswordVisualTransformation(),singleLine=true,modifier=Modifier.fillMaxWidth())
-    else OutlinedTextField(value,onChange,label={Text(label)},modifier=Modifier.fillMaxWidth(),minLines=if(label=="Contenido") 12 else 1,
-        textStyle=LocalTextStyle.current.copy(fontFamily=if(label in listOf("Contenido","Comando","Expresión cron")) FontFamily.Monospace else FontFamily.Default))
+    else OutlinedTextField(value,onChange,label={Text(label)},modifier=Modifier.fillMaxWidth(),minLines=if(multiline) 12 else 1,
+        textStyle=LocalTextStyle.current.copy(fontFamily=if(code) FontFamily.Monospace else FontFamily.Default))
 }
 @Composable private fun JobHealth(job: JSONObject) {
     val state=health(job)
@@ -153,6 +154,7 @@ private val destinations=listOf(
     var query by remember { mutableStateOf("") }
     var scriptQuery by remember { mutableStateOf("") }
     val context=LocalContext.current
+    fun tr(id: Int,vararg args: Any): String=context.getString(id,*args)
     val listPreferences=remember(context) { context.applicationContext.getSharedPreferences("list_preferences",0) }
     var nonZeroFirst by remember(listPreferences) { mutableStateOf(listPreferences.getBoolean("tasks_non_zero_first",false)) }
     var selectedUser by remember { mutableStateOf("") }
@@ -179,17 +181,17 @@ private val destinations=listOf(
             "command" to (job?.let { it.optString("editableCommand",it.optString("command")) } ?: ""),
             "selectedScriptId" to (script?.optString("id") ?: ""),"comment" to (job?.optString("comment") ?: ""),
             "user" to (job?.optString("user") ?: vm.users.firstOrNull().orEmpty()),"logsEnabled" to (job?.optBoolean("logsEnabled") ?: true))
-        editor=Editor(if(job==null) "Nueva tarea" else "Editar tarea",data) { changed ->
+        editor=Editor(if(job==null) R.string.main_new_job else R.string.main_edit_job,data) { changed ->
             vm.action(if(job==null) "job.create" else "job.edit",changed) { editor=null }
         }
     }
     fun openScript(script: JSONObject?=null) {
-        if(script==null) editor=Editor("Nuevo script",JSONObject(vm.draft.toString())) { changed ->
+        if(script==null) editor=Editor(R.string.main_new_script,JSONObject(vm.draft.toString())) { changed ->
             vm.action("script.create",changed) { editor=null; vm.draft=obj("name" to "","description" to "","content" to "#!/bin/bash\n") }
         }
         else vm.work {
             val content=vm.request("script.content",obj("filename" to script.getString("filename"))).optString("data")
-            editor=Editor("Editar script",obj("id" to script.getString("id"),"name" to script.optString("name"),"description" to script.optString("description"),"content" to content)) { changed ->
+            editor=Editor(R.string.main_edit_script,obj("id" to script.getString("id"),"name" to script.optString("name"),"description" to script.optString("description"),"content" to content)) { changed ->
                 vm.action("script.update",changed) { editor=null }
             }
         }
@@ -198,9 +200,9 @@ private val destinations=listOf(
         containerColor=MaterialTheme.colorScheme.background,
         topBar={ CronmasterAppBar(
             appearance=appearance,
-            section=if(appearanceDialog) "Ajustes" else if(vm.connected) destinations[tab].title else "Acceso",
+            section=if(appearanceDialog) tr(R.string.settings) else if(vm.connected) stringResource(destinations[tab].title) else tr(R.string.section_access),
             onOpenSettings={openSettings()},
-            onRefresh=if(vm.connected) { { vm.work { vm.refresh(); if(tab==2) vm.backups=vm.request("backups").rows(); vm.message="Datos actualizados" } } } else null,
+            onRefresh=if(vm.connected) { { vm.work { vm.refresh(); if(tab==2) vm.backups=vm.request("backups").rows(); vm.message=tr(R.string.data_updated) } } } else null,
             refreshEnabled=enabled,
             connectionStatus=vm.connectionStatus,
             serverCount=vm.serverProfiles.size,
@@ -214,46 +216,46 @@ private val destinations=listOf(
             } } else null
         ) },
         bottomBar={ if(vm.connected) NavigationBar {
-            destinations.take(4).forEachIndexed { index,d -> NavigationBarItem(selected=tab==index,onClick={tab=index; lastTab=index; if(index==2) vm.loadBackups()},icon={Icon(d.icon,d.title)},label=null) }
+            destinations.take(4).forEachIndexed { index,d -> NavigationBarItem(selected=tab==index,onClick={tab=index; lastTab=index; if(index==2) vm.loadBackups()},icon={Icon(d.icon,stringResource(d.title))},label=null) }
         } },
-        floatingActionButton={ if(vm.connected && tab in 0..1) FloatingActionButton(onClick={if(enabled) { if(tab==0) openJob() else openScript() }}) { Icon(Icons.Default.Add,if(tab==0) "Nueva tarea" else "Nuevo script") } }
+        floatingActionButton={ if(vm.connected && tab in 0..1) FloatingActionButton(onClick={if(enabled) { if(tab==0) openJob() else openScript() }}) { Icon(Icons.Default.Add,if(tab==0) tr(R.string.main_new_job) else tr(R.string.main_new_script)) } }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
             if(vm.busy || vm.restoring) LinearProgressIndicator(Modifier.fillMaxWidth())
             if(vm.message.isNotBlank()) Surface(shape=MaterialTheme.shapes.medium,color=MaterialTheme.colorScheme.secondaryContainer) {
                 Row(Modifier.fillMaxWidth().padding(start=12.dp),verticalAlignment=Alignment.CenterVertically) {
                     Text(vm.message,modifier=Modifier.weight(1f),style=MaterialTheme.typography.bodySmall)
-                    ActionIcon(Icons.Default.Close,"Descartar aviso") { vm.message="" }
+                    ActionIcon(Icons.Default.Close,tr(R.string.discard_notice)) { vm.message="" }
                 }
             }
-            if(vm.restoring) Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center) { Text("Restaurando acceso seguro…") }
+            if(vm.restoring) Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center) { Text(tr(R.string.main_restore_access)) }
             else if(!vm.connected) Column(Modifier.verticalScroll(rememberScrollState()).padding(vertical=12.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
                 Icon(Icons.Default.Terminal,null,modifier=Modifier.size(56.dp),tint=MaterialTheme.colorScheme.primary)
-                Text("Tu servidor, a un toque",style=MaterialTheme.typography.headlineMedium)
-                Text("Identifícate una vez. El acceso se guarda cifrado en este dispositivo.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(tr(R.string.main_access_title),style=MaterialTheme.typography.headlineMedium)
+                Text(tr(R.string.main_access_hint),color=MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedTextField(vm.sessionName,{if(it.length<=64) vm.sessionName=it},label={Text(stringResource(R.string.session_name_optional))},singleLine=true,enabled=enabled,modifier=Modifier.fillMaxWidth())
-                Field("URL del servidor",vm.url,onChange={vm.url=it})
-                Field("Contraseña",vm.password,true) { vm.password=it }
-                Field("API key (alternativa)",vm.token,true) { vm.token=it }
-                Row(verticalAlignment=Alignment.CenterVertically) { Checkbox(vm.allowHttp,{vm.allowHttp=it}); Text("Permitir HTTP sin cifrado",style=MaterialTheme.typography.bodySmall) }
-                if(vm.allowHttp) Text("HTTP expone el acceso en la red. Utiliza HTTPS siempre que sea posible.",color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)
-                Button(onClick={vm.connect()},enabled=enabled && vm.url.isNotBlank(),modifier=Modifier.fillMaxWidth()) { Icon(Icons.AutoMirrored.Filled.Login,null); Spacer(Modifier.width(8.dp)); Text("Conectar y guardar") }
-                TextButton(onClick={confirm("Borrar acceso local",if(vm.activeServerId==null) "Se eliminarán los accesos guardados de este dispositivo." else "Se eliminará solo el acceso del servidor seleccionado. Los demás se conservarán.") { vm.logout() }},enabled=enabled) { Text("Borrar acceso guardado") }
+                Field(tr(R.string.server_url),vm.url,onChange={vm.url=it})
+                Field(tr(R.string.password),vm.password,true) { vm.password=it }
+                Field(tr(R.string.api_key_alternative),vm.token,true) { vm.token=it }
+                Row(verticalAlignment=Alignment.CenterVertically) { Checkbox(vm.allowHttp,{vm.allowHttp=it}); Text(tr(R.string.allow_http),style=MaterialTheme.typography.bodySmall) }
+                if(vm.allowHttp) Text(tr(R.string.http_warning),color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)
+                Button(onClick={vm.connect()},enabled=enabled && vm.url.isNotBlank(),modifier=Modifier.fillMaxWidth()) { Icon(Icons.AutoMirrored.Filled.Login,null); Spacer(Modifier.width(8.dp)); Text(tr(R.string.main_connect_save)) }
+                TextButton(onClick={confirm(tr(R.string.clear_local_access),if(vm.activeServerId==null) tr(R.string.clear_all_access_confirmation) else tr(R.string.clear_selected_access_confirmation)) { vm.logout() }},enabled=enabled) { Text(tr(R.string.main_clear_saved_access)) }
             }
             else {
-                if(vm.wrapperModified) Text("Wrapper de logs modificado en el servidor",color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)
+                if(vm.wrapperModified) Text(tr(R.string.main_wrapper_modified),color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)
                 when(tab) {
                     0 -> {
-                        OutlinedTextField(query,{query=it},label={Text("Buscar tareas")},leadingIcon={Icon(Icons.Default.Search,null)},trailingIcon={ActionIcon(Icons.Default.FilterList,"Filtrar por usuario") { filters=!filters }},singleLine=true,modifier=Modifier.fillMaxWidth(),shape=MaterialTheme.shapes.large)
+                        OutlinedTextField(query,{query=it},label={Text(tr(R.string.main_search_jobs))},leadingIcon={Icon(Icons.Default.Search,null)},trailingIcon={ActionIcon(Icons.Default.FilterList,tr(R.string.main_filter_user)) { filters=!filters }},singleLine=true,modifier=Modifier.fillMaxWidth(),shape=MaterialTheme.shapes.large)
                         if(filters) Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                            FilterChip(selected=selectedUser.isEmpty(),onClick={selectedUser=""},label={Text("Todos")})
+                            FilterChip(selected=selectedUser.isEmpty(),onClick={selectedUser=""},label={Text(tr(R.string.main_all_users))})
                             vm.users.forEach { u -> FilterChip(selected=selectedUser==u,onClick={selectedUser=u},label={Text(u)}) }
                         }
                         val filtered=vm.jobs.filter { (selectedUser.isEmpty() || it.optString("user")==selectedUser) && it.toString().contains(query,true) }
                         val visible=if(nonZeroFirst) filtered.sortedBy { if(it.optJSONObject("logError")?.intOrNull("latestExitCode")==0) 1 else 0 } else filtered
-                        Text("${visible.size} tareas",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(pluralStringResource(R.plurals.main_job_count,visible.size,visible.size),style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
                         LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=90.dp)) {
-                            if(visible.isEmpty()) item { Text("No hay tareas que mostrar",modifier=Modifier.padding(16.dp)) }
+                            if(visible.isEmpty()) item { Text(tr(R.string.main_empty_jobs),modifier=Modifier.padding(16.dp)) }
                             items(visible,key={it.getString("id")}) { job ->
                                 val id=job.getString("id"); val args=obj("id" to id); val paused=job.optBoolean("paused",job.optBoolean("isPaused"))
                                 CronmasterCard(Modifier.fillMaxWidth(),shape=MaterialTheme.shapes.large) { Column(Modifier.padding(16.dp)) {
@@ -262,7 +264,7 @@ private val destinations=listOf(
                                             Text(job.optString("comment").ifBlank { id },style=MaterialTheme.typography.titleMedium)
                                             Text(job.optString("user"),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
-                                        if(paused) Icon(Icons.Default.Pause,"Tarea pausada",tint=MaterialTheme.colorScheme.secondary)
+                                        if(paused) Icon(Icons.Default.Pause,tr(R.string.main_paused_job),tint=MaterialTheme.colorScheme.secondary)
                                     }
                                     JobHealth(job)
                                     Text(if(vm.human) job.optString("humanSchedule",job.optString("schedule")) else job.optString("schedule"),style=MaterialTheme.typography.bodyMedium)
@@ -271,34 +273,34 @@ private val destinations=listOf(
                                         Surface(shape=MaterialTheme.shapes.small,color=MaterialTheme.colorScheme.background) {
                                             SelectionContainer { Text(job.optString("editableCommand",job.optString("command")),fontFamily=FontFamily.Monospace,style=MaterialTheme.typography.bodySmall,modifier=Modifier.fillMaxWidth().padding(10.dp)) }
                                         }
-                                        job.optJSONArray("nextRuns")?.let { a -> if(a.length()>0) Text("Próxima (UTC): ${a.optString(0)}",style=MaterialTheme.typography.labelSmall,modifier=Modifier.padding(top=8.dp),color=MaterialTheme.colorScheme.onSurfaceVariant) }
+                                        job.optJSONArray("nextRuns")?.let { a -> if(a.length()>0) Text(tr(R.string.main_next_run,a.optString(0)),style=MaterialTheme.typography.labelSmall,modifier=Modifier.padding(top=8.dp),color=MaterialTheme.colorScheme.onSurfaceVariant) }
                                     }
                                     Actions {
-                                        ActionIcon(Icons.Default.PlayArrow,"Ejecutar tarea",enabled && !paused,MaterialTheme.colorScheme.primary) { confirm("Ejecutar tarea",job.optString("command")) {
+                                        ActionIcon(Icons.Default.PlayArrow,tr(R.string.main_run_job),enabled && !paused,MaterialTheme.colorScheme.primary) { confirm(tr(R.string.main_run_job),job.optString("command")) {
                                             vm.action("job.run",args) { result -> val run=result.optString("runId"); if(run.isNotBlank()) runId=run else output=result.optString("output",result.optString("message")) }
                                         } }
-                                        ActionIcon(Icons.Default.Edit,"Editar tarea",enabled) { openJob(job) }
-                                        ActionIcon(if(paused) Icons.Default.PlayArrow else Icons.Default.Pause,if(paused) "Reanudar tarea" else "Pausar tarea",enabled) { confirm("Cambiar estado",job.optString("comment",id)) { vm.action(if(paused) "job.resume" else "job.pause",args) } }
-                                        ActionIcon(Icons.Default.History,"Historial de logs",enabled) { vm.work { history=LogHistory(id,job.optString("comment",id),vm.request("logs",args).rows()) } }
-                                        ActionIcon(Icons.Default.ContentCopy,"Clonar tarea",enabled) {
-                                            editor=Editor("Clonar tarea",obj("comment" to (job.optString("comment")+" (copia)"))) { data -> data.put("id",id); vm.action("job.clone",data) { editor=null } }
+                                        ActionIcon(Icons.Default.Edit,tr(R.string.main_edit_job),enabled) { openJob(job) }
+                                        ActionIcon(if(paused) Icons.Default.PlayArrow else Icons.Default.Pause,if(paused) tr(R.string.main_resume_job) else tr(R.string.main_pause_job),enabled) { confirm(tr(R.string.main_change_status),job.optString("comment",id)) { vm.action(if(paused) "job.resume" else "job.pause",args) } }
+                                        ActionIcon(Icons.Default.History,tr(R.string.main_log_history),enabled) { vm.work { history=LogHistory(id,job.optString("comment",id),vm.request("logs",args).rows()) } }
+                                        ActionIcon(Icons.Default.ContentCopy,tr(R.string.main_clone_job),enabled) {
+                                            editor=Editor(R.string.main_clone_job,obj("comment" to tr(R.string.main_clone_name,job.optString("comment")))) { data -> data.put("id",id); vm.action("job.clone",data) { editor=null } }
                                         }
-                                        ActionIcon(Icons.AutoMirrored.Filled.ReceiptLong,"Alternar logging",enabled) { confirm("Cambiar logging",id) { vm.action("job.logging",args) } }
-                                        ActionIcon(Icons.Default.Backup,"Guardar backup de tarea",enabled) { confirm("Guardar backup",id) { vm.action("job.backup",args) } }
-                                        ActionIcon(Icons.Default.Delete,"Eliminar tarea",enabled,MaterialTheme.colorScheme.error) { confirm("Eliminar tarea",job.toString(2)) { vm.action("job.delete",args) } }
+                                        ActionIcon(Icons.AutoMirrored.Filled.ReceiptLong,tr(R.string.main_toggle_logging),enabled) { confirm(tr(R.string.main_change_logging),id) { vm.action("job.logging",args) } }
+                                        ActionIcon(Icons.Default.Backup,tr(R.string.main_backup_job),enabled) { confirm(tr(R.string.main_save_backup),id) { vm.action("job.backup",args) } }
+                                        ActionIcon(Icons.Default.Delete,tr(R.string.main_delete_job),enabled,MaterialTheme.colorScheme.error) { confirm(tr(R.string.main_delete_job),job.toString(2)) { vm.action("job.delete",args) } }
                                     }
                                 } }
                             }
                         }
                     }
                     1 -> {
-                        OutlinedTextField(scriptQuery,{scriptQuery=it},label={Text("Buscar scripts")},leadingIcon={Icon(Icons.Default.Search,null)},singleLine=true,modifier=Modifier.fillMaxWidth(),shape=MaterialTheme.shapes.large)
+                        OutlinedTextField(scriptQuery,{scriptQuery=it},label={Text(tr(R.string.main_search_scripts))},leadingIcon={Icon(Icons.Default.Search,null)},singleLine=true,modifier=Modifier.fillMaxWidth(),shape=MaterialTheme.shapes.large)
                         val visibleScripts=vm.scripts.filter { script ->
                             listOf("name","description","filename").any { script.optString(it).contains(scriptQuery,true) }
                         }
-                        Text("${visibleScripts.size} scripts",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(pluralStringResource(R.plurals.main_script_count,visibleScripts.size,visibleScripts.size),style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
                         LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=90.dp)) {
-                        if(visibleScripts.isEmpty()) item { Text(if(vm.scripts.isEmpty()) "Crea tu primer script con el botón +" else "No hay scripts que mostrar",modifier=Modifier.padding(16.dp)) }
+                        if(visibleScripts.isEmpty()) item { Text(if(vm.scripts.isEmpty()) tr(R.string.main_first_script) else tr(R.string.main_empty_scripts),modifier=Modifier.padding(16.dp)) }
                         items(visibleScripts,key={it.getString("id")}) { script ->
                             val id=script.getString("id")
                             CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
@@ -306,11 +308,11 @@ private val destinations=listOf(
                                 Text(script.optString("description"),style=MaterialTheme.typography.bodyMedium)
                                 Text(script.optString("filename"),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                                 Actions {
-                                    ActionIcon(Icons.Default.Edit,"Editar script",enabled) { openScript(script) }
-                                    ActionIcon(Icons.Default.Schedule,"Programar script",enabled) { openJob(script=script) }
-                                    ActionIcon(Icons.Default.ContentCopy,"Copiar contenido",enabled) { vm.work { clipboard.setText(AnnotatedString(vm.request("script.content",obj("filename" to script.getString("filename"))).optString("data"))); vm.message="Script copiado" } }
-                                    ActionIcon(Icons.Default.FileCopy,"Clonar script",enabled) { editor=Editor("Clonar script",obj("name" to (script.optString("name")+" (copia)"))) { d -> d.put("id",id); vm.action("script.clone",d) { editor=null } } }
-                                    ActionIcon(Icons.Default.Delete,"Eliminar script",enabled,MaterialTheme.colorScheme.error) { confirm("Eliminar script",script.optString("name")+". Sus tareas no se eliminarán.") { vm.action("script.delete",obj("id" to id)) } }
+                                    ActionIcon(Icons.Default.Edit,tr(R.string.main_edit_script),enabled) { openScript(script) }
+                                    ActionIcon(Icons.Default.Schedule,tr(R.string.main_schedule_script),enabled) { openJob(script=script) }
+                                    ActionIcon(Icons.Default.ContentCopy,tr(R.string.main_copy_content),enabled) { vm.work { clipboard.setText(AnnotatedString(vm.request("script.content",obj("filename" to script.getString("filename"))).optString("data"))); vm.message=tr(R.string.main_script_copied) } }
+                                    ActionIcon(Icons.Default.FileCopy,tr(R.string.main_clone_script),enabled) { editor=Editor(R.string.main_clone_script,obj("name" to tr(R.string.main_clone_name,script.optString("name")))) { d -> d.put("id",id); vm.action("script.clone",d) { editor=null } } }
+                                    ActionIcon(Icons.Default.Delete,tr(R.string.main_delete_script),enabled,MaterialTheme.colorScheme.error) { confirm(tr(R.string.main_delete_script),tr(R.string.main_delete_script_detail,script.optString("name"))) { vm.action("script.delete",obj("id" to id)) } }
                                 }
                             } }
                         }
@@ -318,18 +320,18 @@ private val destinations=listOf(
                     }
                     2 -> {
                         Actions {
-                            ActionIcon(Icons.Default.Backup,"Backup de todas las tareas",enabled) { confirm("Backup completo","Guardar todas las tareas en el servidor") { vm.action("backup.all") } }
-                            ActionIcon(Icons.Default.Restore,"Restaurar todos los backups",enabled) { confirm("Restaurar todos","Puede crear tareas duplicadas.") { vm.action("restore.all") } }
+                            ActionIcon(Icons.Default.Backup,tr(R.string.main_backup_all),enabled) { confirm(tr(R.string.main_full_backup),tr(R.string.main_backup_all_detail)) { vm.action("backup.all") } }
+                            ActionIcon(Icons.Default.Restore,tr(R.string.main_restore_backups),enabled) { confirm(tr(R.string.main_restore_all),tr(R.string.main_duplicate_warning)) { vm.action("restore.all") } }
                         }
                         LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=16.dp)) {
-                            if(vm.backups.isEmpty()) item { Text("No hay backups cargados. Pulsa el icono de actualizar.") }
+                            if(vm.backups.isEmpty()) item { Text(tr(R.string.main_empty_backups)) }
                             items(vm.backups) { b -> CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                                 Text(b.optJSONObject("job")?.optString("comment").orEmpty().ifBlank { b.optString("filename") },style=MaterialTheme.typography.titleMedium)
                                 Text(b.optString("filename"),style=MaterialTheme.typography.bodySmall)
                                 Text(b.optString("backedUpAt"),style=MaterialTheme.typography.labelSmall)
                                 Actions {
-                                    ActionIcon(Icons.Default.Restore,"Restaurar backup",enabled) { confirm("Restaurar backup",b.optString("filename")+". Puede crear duplicados.") { vm.action("backup.restore",obj("filename" to b.getString("filename"))) } }
-                                    ActionIcon(Icons.Default.Delete,"Eliminar backup",enabled,MaterialTheme.colorScheme.error) { confirm("Eliminar backup",b.optString("filename")) { vm.action("backup.delete",obj("filename" to b.getString("filename"))) } }
+                                    ActionIcon(Icons.Default.Restore,tr(R.string.main_restore_backup),enabled) { confirm(tr(R.string.main_restore_backup),tr(R.string.main_restore_backup_detail,b.optString("filename"))) { vm.action("backup.restore",obj("filename" to b.getString("filename"))) } }
+                                    ActionIcon(Icons.Default.Delete,tr(R.string.main_delete_backup),enabled,MaterialTheme.colorScheme.error) { confirm(tr(R.string.main_delete_backup),b.optString("filename")) { vm.action("backup.delete",obj("filename" to b.getString("filename"))) } }
                                 }
                             } } }
                         }
@@ -358,51 +360,51 @@ private val destinations=listOf(
     }
     editor?.let { current -> key(current) {
         var data by remember { mutableStateOf(JSONObject(current.initial.toString())) }
-        WideModal(current.title,{editor=null}) {
+        WideModal(stringResource(current.title),{editor=null}) {
             if(data.has("schedule")) {
-                Text("Programación",style=MaterialTheme.typography.titleSmall)
+                Text(tr(R.string.main_scheduling),style=MaterialTheme.typography.titleSmall)
                 Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                    listOf("Cada 5 min" to "*/5 * * * *","Cada hora" to "0 * * * *","Diario" to "0 2 * * *","Semanal" to "0 2 * * 0","Al arrancar" to "@reboot").forEach { (name,cron) -> AssistChip(onClick={data=JSONObject(data.toString()).put("schedule",cron)},label={Text(name)}) }
+                    listOf(R.string.main_every_five_minutes to "*/5 * * * *",R.string.main_hourly to "0 * * * *",R.string.main_daily to "0 2 * * *",R.string.main_weekly to "0 2 * * 0",R.string.main_at_reboot to "@reboot").forEach { (name,cron) -> AssistChip(onClick={data=JSONObject(data.toString()).put("schedule",cron)},label={Text(stringResource(name))}) }
                 }
-                Text("Comando manual o script. Un script seleccionado tiene prioridad.",style=MaterialTheme.typography.bodySmall)
+                Text(tr(R.string.main_manual_hint),style=MaterialTheme.typography.bodySmall)
                 Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected=data.optString("selectedScriptId").isBlank(),onClick={data=JSONObject(data.toString()).put("selectedScriptId","")},label={Text("Manual")})
+                    FilterChip(selected=data.optString("selectedScriptId").isBlank(),onClick={data=JSONObject(data.toString()).put("selectedScriptId","")},label={Text(tr(R.string.main_manual))})
                     vm.scripts.forEach { s -> FilterChip(selected=data.optString("selectedScriptId")==s.getString("id"),onClick={data=JSONObject(data.toString()).put("selectedScriptId",s.getString("id"))},label={Text(s.optString("name"))}) }
                 }
             }
-            val labels=mapOf("schedule" to "Expresión cron","command" to "Comando","comment" to "Nombre / comentario","name" to "Nombre","description" to "Descripción","content" to "Contenido","user" to "Usuario")
+            val labels=mapOf("schedule" to tr(R.string.main_field_schedule),"command" to tr(R.string.main_field_command),"comment" to tr(R.string.main_field_comment),"name" to tr(R.string.main_field_name),"description" to tr(R.string.main_field_description),"content" to tr(R.string.main_field_content),"user" to tr(R.string.main_field_user))
             current.initial.keys().asSequence().toList().filter { it !in listOf("id","selectedScriptId") }.forEach { field ->
                 when(field) {
-                    "logsEnabled" -> Row(verticalAlignment=Alignment.CenterVertically) { Text("Guardar logs de ejecución",modifier=Modifier.weight(1f)); Switch(data.optBoolean(field),{data=JSONObject(data.toString()).put(field,it)}) }
-                    "user" -> if(!current.initial.isNull("id")) Text("Usuario: ${data.optString("user")}") else {
-                        Text("Usuario")
+                    "logsEnabled" -> Row(verticalAlignment=Alignment.CenterVertically) { Text(tr(R.string.main_save_logs),modifier=Modifier.weight(1f)); Switch(data.optBoolean(field),{data=JSONObject(data.toString()).put(field,it)}) }
+                    "user" -> if(!current.initial.isNull("id")) Text(tr(R.string.main_user_value,data.optString("user"))) else {
+                        Text(tr(R.string.main_field_user))
                         Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) { vm.users.forEach { u -> FilterChip(selected=data.optString("user")==u,onClick={data=JSONObject(data.toString()).put("user",u)},label={Text(u)}) } }
                     }
-                    else -> Field(labels[field] ?: field,data.optString(field,"")) { value -> data=JSONObject(data.toString()).put(field,value); if(current.title=="Nuevo script") vm.draft=JSONObject(data.toString()) }
+                    else -> Field(labels[field] ?: field,data.optString(field,""),multiline=field=="content",code=field in listOf("content","command","schedule")) { value -> data=JSONObject(data.toString()).put(field,value); if(current.title==R.string.main_new_script) vm.draft=JSONObject(data.toString()) }
                 }
             }
             if(data.has("content")) {
-                TextButton(onClick={vm.loadSnippets()},enabled=enabled) { Icon(Icons.Default.DataObject,null); Spacer(Modifier.width(8.dp)); Text("Snippets") }
-                vm.snippets.forEach { snippet -> AssistChip(onClick={data=JSONObject(data.toString()).put("content",data.optString("content")+"\n"+snippet.optString("template")); if(current.title=="Nuevo script") vm.draft=JSONObject(data.toString())},label={Text(snippet.optString("title",snippet.optString("name",snippet.optString("id"))))}) }
+                TextButton(onClick={vm.loadSnippets()},enabled=enabled) { Icon(Icons.Default.DataObject,null); Spacer(Modifier.width(8.dp)); Text(tr(R.string.main_snippets)) }
+                vm.snippets.forEach { snippet -> AssistChip(onClick={data=JSONObject(data.toString()).put("content",data.optString("content")+"\n"+snippet.optString("template")); if(current.title==R.string.main_new_script) vm.draft=JSONObject(data.toString())},label={Text(snippet.optString("title",snippet.optString("name",snippet.optString("id"))))}) }
             }
-            Button(onClick={current.save(JSONObject(data.toString()))},enabled=enabled,modifier=Modifier.fillMaxWidth()) { Icon(Icons.Default.Save,null); Spacer(Modifier.width(8.dp)); Text("Guardar cambios") }
+            Button(onClick={current.save(JSONObject(data.toString()))},enabled=enabled,modifier=Modifier.fillMaxWidth()) { Icon(Icons.Default.Save,null); Spacer(Modifier.width(8.dp)); Text(tr(R.string.main_save_changes)) }
         }
     } }
-    confirmation?.let { c -> AlertDialog(onDismissRequest={confirmation=null},title={Text(c.title)},text={Text(c.detail)},confirmButton={TextButton(onClick={confirmation=null;c.run()},enabled=enabled) { Text("Confirmar") }},dismissButton={TextButton(onClick={confirmation=null}) { Text("Cancelar") }}) }
-    history?.let { h -> WideModal("Logs · ${h.name}",{history=null}) {
-        Actions { ActionIcon(Icons.Default.DeleteSweep,"Eliminar todos los logs",enabled,MaterialTheme.colorScheme.error) { confirm("Eliminar todos los logs",h.id) { vm.action("logs.deleteAll",obj("id" to h.id)) { history=null } } } }
-        if(h.rows.isEmpty()) Text("No hay logs guardados")
+    confirmation?.let { c -> AlertDialog(onDismissRequest={confirmation=null},title={Text(c.title)},text={Text(c.detail)},confirmButton={TextButton(onClick={confirmation=null;c.run()},enabled=enabled) { Text(tr(R.string.main_confirm)) }},dismissButton={TextButton(onClick={confirmation=null}) { Text(tr(R.string.cancel)) }}) }
+    history?.let { h -> WideModal(tr(R.string.main_logs_title,h.name),{history=null}) {
+        Actions { ActionIcon(Icons.Default.DeleteSweep,tr(R.string.main_delete_all_logs),enabled,MaterialTheme.colorScheme.error) { confirm(tr(R.string.main_delete_all_logs),h.id) { vm.action("logs.deleteAll",obj("id" to h.id)) { history=null } } } }
+        if(h.rows.isEmpty()) Text(tr(R.string.main_empty_logs))
         h.rows.forEach { log -> CronmasterCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
             Text(log.optString("filename"),style=MaterialTheme.typography.titleSmall)
-            Text("${log.optLong("size")} bytes · exit ${if(log.isNull("exitCode")) "—" else log.optString("exitCode","—")}",style=MaterialTheme.typography.bodySmall)
+            Text(tr(R.string.main_log_metadata,log.optLong("size"),if(log.isNull("exitCode")) "—" else log.optString("exitCode","—")),style=MaterialTheme.typography.bodySmall)
             val args=obj("id" to h.id,"filename" to log.getString("filename"))
             Actions {
-                ActionIcon(Icons.Default.Terminal,"Abrir log en terminal",enabled) { vm.work { output=vm.request("log.content",args).optString("data") } }
-                ActionIcon(Icons.Default.Delete,"Eliminar log",enabled,MaterialTheme.colorScheme.error) { confirm("Eliminar log",log.optString("filename")) { vm.action("log.delete",args) { history=null } } }
+                ActionIcon(Icons.Default.Terminal,tr(R.string.main_open_log),enabled) { vm.work { output=vm.request("log.content",args).optString("data") } }
+                ActionIcon(Icons.Default.Delete,tr(R.string.main_delete_log),enabled,MaterialTheme.colorScheme.error) { confirm(tr(R.string.main_delete_log),log.optString("filename")) { vm.action("log.delete",args) { history=null } } }
             }
         } } }
     } }
-    output?.let { text -> TerminalDialog("Log de ejecución",text,"Salida guardada",close={output=null}) }
+    output?.let { text -> TerminalDialog(tr(R.string.main_execution_log),text,tr(R.string.main_saved_output),close={output=null}) }
     runId?.let { id -> SessionLiveTerminal(vm,id) { runId=null } }
     if(appearanceDialog) UnifiedSettingsDialog(vm,appearance,themes,display,close={appearanceDialog=false},onAddServer={addServerDialog=true})
     if(serverSwitcher && vm.serverProfiles.size>1) ServerSwitcherDialog(vm) { serverSwitcher=false }

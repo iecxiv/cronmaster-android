@@ -62,7 +62,7 @@ internal fun CronmasterAppBar(
     onNonZeroFirstChange: ((Boolean) -> Unit)? = null
 ) {
     val mesh = LocalThemeStyle.current == ThemeStyle.MESHFABRIC
-    val showServerActions = section != "Ajustes"
+    val showServerActions = section != stringResource(R.string.settings)
     val statusColor = when (connectionStatus) {
         ConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
         ConnectionStatus.CONNECTING -> Color(0xFFFFC107)
@@ -97,7 +97,7 @@ internal fun CronmasterAppBar(
             }
         },
         actions = {
-            if (section == "Tareas" && onNonZeroFirstChange != null) {
+            if (onNonZeroFirstChange != null) {
                 IconToggleButton(checked = nonZeroFirst, onCheckedChange = onNonZeroFirstChange) {
                     Icon(Icons.Default.FilterAlt, stringResource(R.string.appbar_prioritize_nonzero))
                 }
