@@ -13,6 +13,7 @@ import java.net.URLEncoder
 import java.util.UUID
 
 class MainViewModel(app: Application): AndroidViewModel(app) {
+    private fun text(id: Int,vararg args: Any): String=getApplication<Application>().getString(id,*args)
     private val vault=SecureStore(app)
     private val preferences=app.getSharedPreferences("appearance",0)
     private val refreshMutex=Mutex()
@@ -35,7 +36,7 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
     var restoring by mutableStateOf(true)
     var busy by mutableStateOf(false)
     var message by mutableStateOf("")
-    var eventState by mutableStateOf("Conectando")
+    var eventState by mutableStateOf(text(R.string.status_connecting))
     internal var connectionStatus by mutableStateOf(ConnectionStatus.UNKNOWN)
         private set
     var dark by mutableStateOf(preferences.getBoolean("dark",true))
@@ -52,7 +53,7 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
     private data class Saved(val profiles: ServerProfiles, val config: JSONObject?)
     private fun saved(): Saved {
         val snapshot=vault.snapshot()
-        return Saved(snapshot,snapshot.activeId?.let { checkNotNull(vault.forProfile(it).load()) { "El acceso guardado no está disponible" } })
+        return Saved(snapshot,snapshot.activeId?.let { checkNotNull(vault.forProfile(it).load()) { text(R.string.error_saved_access_unavailable) } })
     }
     init {
         viewModelScope.launch {
@@ -66,7 +67,7 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
                     refreshAfterChange("")
                 }
             } catch(e: CancellationException) { throw e }
-            catch(e: Exception) { message="No se pudo abrir el acceso cifrado: ${e.message}. Puedes volver a identificarte o borrar el acceso local." }
+            catch(e: Exception) { message=text(R.string.error_open_encrypted_access,e.message.orEmpty()) }
             finally { restoring=false }
         }
     }
@@ -82,7 +83,7 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
         old?.disablePersistence(); stream?.cancel(); stream=null; old?.cancelCalls()
         if(shutdown) old?.shutdown()
         connectionStatus=ConnectionStatus.UNKNOWN
-        eventState="Sin estado verificable"
+        eventState=text(R.string.status_unknown)
         return old
     }
     private fun clearData() {
@@ -109,7 +110,7 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
     }
     fun saveAppearance() { preferences.edit().putBoolean("dark",dark).putBoolean("minimal",minimal).putBoolean("human",human).apply() }
     private fun showError(e: Exception) {
-        message=if(e is HttpFailure && e.code==401) "El servidor rechazó el acceso guardado. Revisa la contraseña o API key; no se han borrado tus credenciales." else (e.message ?: "Error de conexión")
+        message=if(e is HttpFailure && e.code==401) text(R.string.saved_access_rejected) else (e.message ?: text(R.string.error_connection))
     }
     fun work(block: suspend () -> Unit) {
         if(busy || restoring) return
@@ -122,16 +123,16 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
         }
     }
     private suspend fun registerServer(id: String?,name: String,serverUrl: String,apiKey: String,secret: String,http: Boolean,done: () -> Unit) {
-        check(apiKey.isNotBlank() || secret.isNotBlank()) { "Introduce contraseña o API key" }
-        require(name.trim().length<=64) { "El nombre no puede superar 64 caracteres" }
+        check(apiKey.isNotBlank() || secret.isNotBlank()) { text(R.string.error_access_required) }
+        require(name.trim().length<=64) { text(R.string.error_name_too_long) }
         val targetId=id ?: UUID.randomUUID().toString()
         val config=obj("url" to serverUrl.trim().trimEnd('/'),"token" to apiKey,"password" to secret,"http" to http)
         val candidate=createApi(config,targetId,false)
         var adopted=false
         try {
             val capabilities=withTimeoutOrNull(30000) { candidate.native("capabilities") }
-                ?: error("Se agotó el tiempo para validar el servidor")
-            check(capabilities.optInt("version")==1) { "Extensión api/native incompatible" }
+                ?: error(text(R.string.error_validation_timeout))
+            check(capabilities.optInt("version")==1) { text(R.string.error_native_incompatible) }
             config.put("cookies",candidate.cookieSnapshot())
             val snapshot=withContext(Dispatchers.IO) {
                 vault.forProfile(targetId).saveProfile(config,name)
@@ -141,7 +142,7 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
             attach(config,targetId,candidate,snapshot)
             adopted=true
             done()
-            refreshAfterChange("Servidor guardado de forma cifrada")
+            refreshAfterChange(text(R.string.server_saved_encrypted))
         } finally { if(!adopted) candidate.shutdown() }
     }
     fun connect()=work {
@@ -167,7 +168,7 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
     }
     internal fun switchServer(id: String,done: () -> Unit={})=work {
         if(id==activeServerId && api!=null) { done(); return@work }
-        val config=withContext(Dispatchers.IO) { checkNotNull(vault.forProfile(id).load()) { "El servidor ya no está guardado" } }
+        val config=withContext(Dispatchers.IO) { checkNotNull(vault.forProfile(id).load()) { text(R.string.error_server_not_saved) } }
         val candidate=createApi(config,id)
         var adopted=false
         try {
@@ -175,14 +176,14 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
             attach(config,id,candidate,snapshot)
             adopted=true
             done()
-            refreshAfterChange("Servidor seleccionado: $activeServerName")
+            refreshAfterChange(text(R.string.server_selected,activeServerName))
         } finally { if(!adopted) candidate.shutdown() }
     }
     private fun ensureCurrent(client: Api) {
-        if(api!==client) throw CancellationException("El servidor activo ha cambiado")
+        if(api!==client) throw CancellationException(text(R.string.session_changed))
     }
     suspend fun request(op: String,args: JSONObject=JSONObject()): JSONObject {
-        val current=checkNotNull(api) { "No hay un servidor activo" }
+        val current=checkNotNull(api) { text(R.string.error_no_active_server) }
         val result=current.native(op,args)
         ensureCurrent(current)
         return result
@@ -233,10 +234,11 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
             source?.cancel()
             source=current.events(
                 { launch { if(api===current && generation==subscription && stream===source) refreshQuietly(current) } },
-                { text -> launch {
+                { state -> launch {
                     if(api===current && generation==subscription && stream===source) {
-                        eventState=text
-                        connectionStatus=if(text=="Conexión en vivo") ConnectionStatus.CONNECTED else ConnectionStatus.UNKNOWN
+                        val live=state=="Conexión en vivo"
+                        eventState=text(if(live) R.string.live_connection else R.string.periodic_refresh)
+                        connectionStatus=if(live) ConnectionStatus.CONNECTED else ConnectionStatus.UNKNOWN
                     }
                 } }
             )
@@ -257,9 +259,9 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
     }
     fun action(op: String,args: JSONObject=JSONObject(),done: (JSONObject) -> Unit={})=work {
         val result=request(op,args)
-        message=result.optString("message","Operación completada")
+        message=result.optString("message",text(R.string.operation_completed))
         done(result)
-        safely { refresh() }.onFailure { message="Operación completada; no se pudieron refrescar los datos: ${it.message}" }
+        safely { refresh() }.onFailure { message=text(R.string.operation_refresh_failed,it.message.orEmpty()) }
         if(op.startsWith("backup.") || op=="restore.all" || op=="job.backup") {
             safely { request("backups").rows() }.onSuccess { backups=it }
         }
@@ -267,20 +269,20 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
     fun loadBackups()=work { backups=request("backups").rows() }
     fun loadSnippets()=work { snippets=request("snippets").rows() }
     suspend fun live(id: String,offset: Long,expectedEpoch: Long=sessionEpoch): JSONObject {
-        if(expectedEpoch!=sessionEpoch) throw CancellationException("La terminal pertenece a otra sesión")
-        val current=checkNotNull(api) { "No hay un servidor activo" }
+        if(expectedEpoch!=sessionEpoch) throw CancellationException(text(R.string.terminal_other_session))
+        val current=checkNotNull(api) { text(R.string.error_no_active_server) }
         val result=current.call("api/logs/stream?runId=${URLEncoder.encode(id,"UTF-8")}&offset=$offset&maxLines=1000")
         ensureCurrent(current)
-        if(expectedEpoch!=sessionEpoch) throw CancellationException("La sesión ha cambiado")
+        if(expectedEpoch!=sessionEpoch) throw CancellationException(text(R.string.session_changed_short))
         return result
     }
     fun logout()=work {
         val id=activeServerId
         if(id==null) {
-            check(serverProfiles.isEmpty()) { "Selecciona el servidor que quieres cerrar" }
+            check(serverProfiles.isEmpty()) { text(R.string.error_select_logout_server) }
             withContext(Dispatchers.IO) { vault.clear() }
             disconnected()
-            message="Acceso eliminado del dispositivo"
+            message=text(R.string.access_removed)
             return@work
         }
         val old=api
@@ -292,19 +294,19 @@ class MainViewModel(app: Application): AndroidViewModel(app) {
         val next=stored.profiles.activeId
         val config=stored.config
         if(next!=null && config!=null) attach(config,next,createApi(config,next),stored.profiles) else disconnected(stored.profiles)
-        message=if(next==null) "Sesión eliminada del dispositivo" else "Sesión cerrada; servidor activo: $activeServerName"
+        message=if(next==null) text(R.string.session_removed) else text(R.string.session_closed_next_server,activeServerName)
         try { if(old!=null) withTimeoutOrNull(5000) { safely { old.logoutRemote() } } }
         finally { old?.shutdown() }
         if(api!=null) refreshAfterChange(message)
     }
     fun editConnection()=work {
-        val id=checkNotNull(activeServerId) { "No hay un servidor seleccionado" }
+        val id=checkNotNull(activeServerId) { text(R.string.error_no_selected_server) }
         val config=withContext(Dispatchers.IO) { checkNotNull(vault.forProfile(id).load()) }
         closeApi(); clearData(); connected=false; editingServerId=id
         sessionName=serverProfiles.firstOrNull { it.id==id }?.let { if(it.name==it.url) "" else it.name }.orEmpty()
         url=config.optString("url"); allowHttp=config.optBoolean("http")
         token=""; password=""; sessionEpoch++
-        message="Introduce el nuevo acceso. El anterior se conserva cifrado hasta que guardes uno válido o cierres esta sesión."
+        message=text(R.string.edit_access_hint)
     }
     override fun onCleared() { closeApi(); super.onCleared() }
 }

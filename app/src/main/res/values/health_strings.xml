@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="task_health_logging_disabled">Sin logging</string>
+    <string name="task_health_no_data">Sin datos</string>
+    <string name="task_health_failed_exit">Fallida · exit %1$s</string>
+    <string name="task_health_succeeded">Correcta · exit 0</string>
+    <string name="task_health_succeeded_history">Correcta · fallos anteriores</string>
+    <string name="task_health_no_recent_result_history">Sin resultado reciente · fallos anteriores</string>
+    <string name="task_health_no_result">Sin resultado</string>
+</resources>

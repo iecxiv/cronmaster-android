@@ -28,6 +28,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -61,20 +62,22 @@ internal fun CronmasterAppBar(
     onNonZeroFirstChange: ((Boolean) -> Unit)? = null
 ) {
     val mesh = LocalThemeStyle.current == ThemeStyle.MESHFABRIC
-    val showServerActions = section != "Ajustes"
+    val showServerActions = section != stringResource(R.string.settings)
     val statusColor = when (connectionStatus) {
         ConnectionStatus.CONNECTED -> Color(0xFF4CAF50)
         ConnectionStatus.CONNECTING -> Color(0xFFFFC107)
         ConnectionStatus.UNKNOWN -> Color(0xFF8995A8)
     }
-    val statusLabel = when (connectionStatus) {
-        ConnectionStatus.CONNECTED -> "Conectado"
-        ConnectionStatus.CONNECTING -> "Conectando"
-        ConnectionStatus.UNKNOWN -> "Sin estado verificable"
-    }
+    val statusLabel = stringResource(when (connectionStatus) {
+        ConnectionStatus.CONNECTED -> R.string.status_connected
+        ConnectionStatus.CONNECTING -> R.string.status_connecting
+        ConnectionStatus.UNKNOWN -> R.string.status_unknown
+    })
+    val openSettingsLabel = stringResource(R.string.open_settings)
+    val statusDescription = stringResource(R.string.connection_status_description,statusLabel)
     TopAppBar(
         navigationIcon = {
-            IconButton(onClick = onOpenSettings, modifier = Modifier.semantics { contentDescription = "Abrir ajustes" }) {
+            IconButton(onClick = onOpenSettings, modifier = Modifier.semantics { contentDescription = openSettingsLabel }) {
                 CronmasterBrandIcon(appearance.iconBitmap, Modifier.size(36.dp).clip(CircleShape))
             }
         },
@@ -84,29 +87,29 @@ internal fun CronmasterAppBar(
                     Text(appearance.displayName, modifier = Modifier.weight(1f, fill = false), fontSize = 18.sp, fontWeight = if (mesh) FontWeight.Bold else FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Spacer(Modifier.width(8.dp))
                     Box(Modifier.size(10.dp).background(statusColor, CircleShape).semantics {
-                        contentDescription = "Estado de conexión: $statusLabel"
+                        contentDescription = statusDescription
                         liveRegion = LiveRegionMode.Polite
                     })
                 }
-                Text(if (serverCount > 1 && !serverName.isNullOrBlank()) "$section · $serverName" else section,
+                Text(if (serverCount > 1 && !serverName.isNullOrBlank()) stringResource(R.string.appbar_section_server,section,serverName) else section,
                     style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         },
         actions = {
-            if (section == "Tareas" && onNonZeroFirstChange != null) {
+            if (onNonZeroFirstChange != null) {
                 IconToggleButton(checked = nonZeroFirst, onCheckedChange = onNonZeroFirstChange) {
-                    Icon(Icons.Default.FilterAlt, "Priorizar tareas sin exit 0")
+                    Icon(Icons.Default.FilterAlt, stringResource(R.string.appbar_prioritize_nonzero))
                 }
             }
             if (showServerActions && serverCount > 1 && onSwitchServer != null) IconButton(onClick = onSwitchServer, enabled = switchEnabled) {
-                Icon(Icons.Default.SwapHoriz, "Cambiar servidor")
+                Icon(Icons.Default.SwapHoriz, stringResource(R.string.switch_server))
             }
             if (showServerActions && onRefresh != null) IconButton(onClick = onRefresh, enabled = refreshEnabled) {
-                Icon(Icons.Default.Refresh, "Actualizar datos")
+                Icon(Icons.Default.Refresh, stringResource(R.string.refresh_data))
             }
             if (!appearance.hideSettingsIcon) IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Default.Settings, "Abrir ajustes")
+                Icon(Icons.Default.Settings, openSettingsLabel)
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)

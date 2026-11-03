@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -38,26 +40,37 @@ internal fun CardActions(content: @Composable RowScope.() -> Unit) {
     }
 }
 
-private fun compactActionLabel(label: String): String = when (label) {
-    "Ejecutar tarea" -> "Ejecutar"
-    "Editar tarea", "Editar script" -> "Editar"
-    "Pausar tarea" -> "Pausar"
-    "Reanudar tarea" -> "Reanudar"
-    "Historial de logs" -> "Logs"
-    "Clonar tarea", "Clonar script" -> "Clonar"
-    "Alternar logging" -> "Logging"
-    "Guardar backup de tarea" -> "Backup"
-    "Eliminar tarea", "Eliminar script", "Eliminar backup", "Eliminar log" -> "Eliminar"
-    "Programar script" -> "Programar"
-    "Copiar contenido" -> "Copiar"
-    "Backup de todas las tareas" -> "Copiar todo"
-    "Restaurar todos los backups" -> "Restaurar todo"
-    "Restaurar backup" -> "Restaurar"
-    "Cambiar acceso" -> "Acceso"
-    "Cerrar sesión" -> "Cerrar sesión"
-    "Eliminar todos los logs" -> "Borrar todo"
-    "Abrir log en terminal" -> "Ver log"
-    else -> label
+private val compactLabels = mapOf(
+    R.string.main_run_job to R.string.action_short_run,
+    R.string.main_edit_job to R.string.action_short_edit,
+    R.string.main_edit_script to R.string.action_short_edit,
+    R.string.main_pause_job to R.string.action_short_pause,
+    R.string.main_resume_job to R.string.action_short_resume,
+    R.string.main_log_history to R.string.action_short_logs,
+    R.string.main_clone_job to R.string.action_short_clone,
+    R.string.main_clone_script to R.string.action_short_clone,
+    R.string.main_toggle_logging to R.string.action_short_logging,
+    R.string.main_backup_job to R.string.action_short_backup,
+    R.string.main_delete_job to R.string.action_short_delete,
+    R.string.main_delete_script to R.string.action_short_delete,
+    R.string.main_delete_backup to R.string.action_short_delete,
+    R.string.main_delete_log to R.string.action_short_delete,
+    R.string.main_schedule_script to R.string.action_short_schedule,
+    R.string.main_copy_content to R.string.action_short_copy,
+    R.string.main_backup_all to R.string.action_short_backup_all,
+    R.string.main_restore_backups to R.string.action_short_restore_all,
+    R.string.main_restore_backup to R.string.action_short_restore,
+    R.string.change_access to R.string.action_short_access,
+    R.string.logout to R.string.action_short_logout,
+    R.string.main_delete_all_logs to R.string.action_short_delete_all,
+    R.string.main_open_log to R.string.action_short_view_log
+)
+
+@Composable
+private fun compactActionLabel(label: String): String {
+    val context = LocalContext.current
+    val shortId = compactLabels.entries.firstOrNull { context.getString(it.key) == label }?.value
+    return if (shortId != null) stringResource(shortId) else label
 }
 
 @Composable

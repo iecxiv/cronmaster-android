@@ -15,6 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -71,20 +74,20 @@ private fun lineColor(line: String): Color=when {
                         Text(title,style=MaterialTheme.typography.titleMedium)
                         Text(status,color=Muted,fontFamily=FontFamily.Monospace,fontSize=10.sp,maxLines=3)
                     }
-                    IconButton(onClick=close) { Icon(Icons.Default.Close,"Cerrar terminal",tint=Ink) }
+                    IconButton(onClick=close) { Icon(Icons.Default.Close,stringResource(R.string.terminal_close),tint=Ink) }
                 }
                 Row(Modifier.fillMaxWidth().background(Bar).horizontalScroll(rememberScrollState()),verticalAlignment=Alignment.CenterVertically) {
-                    IconButton(onClick={clipboard.setText(AnnotatedString(text))}) { Icon(Icons.Default.ContentCopy,"Copiar salida",tint=Blue) }
-                    IconButton(onClick={size=(size-1).coerceAtLeast(9)}) { Icon(Icons.Default.Remove,"Reducir texto",tint=Blue) }
+                    IconButton(onClick={clipboard.setText(AnnotatedString(text))}) { Icon(Icons.Default.ContentCopy,stringResource(R.string.terminal_copy_output),tint=Blue) }
+                    IconButton(onClick={size=(size-1).coerceAtLeast(9)}) { Icon(Icons.Default.Remove,stringResource(R.string.terminal_decrease_text),tint=Blue) }
                     Text("$size",color=Muted,fontSize=11.sp)
-                    IconButton(onClick={size=(size+1).coerceAtMost(22)}) { Icon(Icons.Default.Add,"Aumentar texto",tint=Blue) }
-                    IconToggleButton(checked=follow,onCheckedChange={follow=it}) { Icon(Icons.Default.VerticalAlignBottom,"Seguir nuevas líneas",tint=if(follow) Green else Muted) }
-                    IconToggleButton(checked=wrap,onCheckedChange={wrap=it}) { Icon(Icons.AutoMirrored.Filled.WrapText,"Ajustar líneas",tint=if(wrap) Green else Muted) }
+                    IconButton(onClick={size=(size+1).coerceAtMost(22)}) { Icon(Icons.Default.Add,stringResource(R.string.terminal_increase_text),tint=Blue) }
+                    IconToggleButton(checked=follow,onCheckedChange={follow=it}) { Icon(Icons.Default.VerticalAlignBottom,stringResource(R.string.terminal_follow_lines),tint=if(follow) Green else Muted) }
+                    IconToggleButton(checked=wrap,onCheckedChange={wrap=it}) { Icon(Icons.AutoMirrored.Filled.WrapText,stringResource(R.string.terminal_wrap_lines),tint=if(wrap) Green else Muted) }
                 }
                 if(error.isNotBlank()) Text(error,color=Red,modifier=Modifier.fillMaxWidth().background(Red.copy(alpha=.1f)).padding(10.dp),fontSize=12.sp)
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                     val contentWidth=if(wrap) maxWidth else maxOf(maxWidth,(longest*size*.85f+100).dp)
-                    if(lines.isEmpty()) Text(if(live) "Esperando salida…" else "Log vacío",color=Muted,modifier=Modifier.padding(16.dp),fontFamily=FontFamily.Monospace)
+                    if(lines.isEmpty()) Text(stringResource(if(live) R.string.terminal_waiting_output else R.string.terminal_empty_log),color=Muted,modifier=Modifier.padding(16.dp),fontFamily=FontFamily.Monospace)
                     else Box(Modifier.fillMaxSize().horizontalScroll(horizontal)) {
                         SelectionContainer {
                             LazyColumn(state=list,modifier=Modifier.width(contentWidth).fillMaxHeight(),contentPadding=PaddingValues(vertical=12.dp)) {
@@ -99,8 +102,8 @@ private fun lineColor(line: String): Color=when {
                     }
                 }
                 Row(Modifier.fillMaxWidth().background(Bar).padding(12.dp),horizontalArrangement=Arrangement.SpaceBetween) {
-                    Text("${lines.size} líneas",fontSize=11.sp,color=Muted)
-                    Text(if(follow) "Siguiendo salida" else "Lectura libre",fontSize=11.sp,color=if(follow) Green else Muted)
+                    Text(pluralStringResource(R.plurals.terminal_line_count,lines.size,lines.size),fontSize=11.sp,color=Muted)
+                    Text(stringResource(if(follow) R.string.terminal_following_output else R.string.terminal_free_reading),fontSize=11.sp,color=if(follow) Green else Muted)
                 }
             }
         }
@@ -108,28 +111,30 @@ private fun lineColor(line: String): Color=when {
 }
 @Composable fun LiveTerminal(vm: MainViewModel,id: String,close: () -> Unit) {
     val owner=LocalLifecycleOwner.current
+    val context=LocalContext.current
+    val connecting=stringResource(R.string.connecting_ellipsis)
     var content by remember(id) { mutableStateOf("") }
-    var status by remember(id) { mutableStateOf("Conectando…") }
+    var status by remember(id,connecting) { mutableStateOf(connecting) }
     var error by remember(id) { mutableStateOf("") }
     var finished by remember(id) { mutableStateOf(false) }
-    LaunchedEffect(id,owner) {
+    LaunchedEffect(id,owner,context) {
         var offset=0L
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while(!finished) {
                 try {
                     val result=vm.live(id,offset)
                     content=if(offset==0L) result.optString("content") else content+result.optString("newContent")
-                    if(content.length>250000) content="[Vista recortada; el log completo sigue en el servidor]\n"+content.takeLast(240000)
+                    if(content.length>250000) content=context.getString(R.string.log_view_truncated)+"\n"+content.takeLast(240000)
                     offset=result.optLong("fileSize",offset)
                     finished=result.optBoolean("isComplete")
                     val exit=if(result.isNull("exitCode")) "—" else result.optString("exitCode","—")
-                    status="${result.optString("status")} · exit $exit · $id"
+                    status=context.getString(R.string.execution_status_line,result.optString("status"),exit,id)
                     error=""
                 } catch(e: CancellationException) { throw e }
-                catch(e: Exception) { error=e.message ?: "No se pudo leer el log" }
+                catch(e: Exception) { error=e.message ?: context.getString(R.string.error_read_log) }
                 if(!finished) delay(1500)
             }
         }
     }
-    TerminalDialog("Ejecución en vivo",content,status,error,!finished,close)
+    TerminalDialog(stringResource(R.string.live_execution),content,status,error,!finished,close)
 }

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="content_language">es</string>
+    <string name="action_short_run">Ejecutar</string>
+    <string name="action_short_edit">Editar</string>
+    <string name="action_short_pause">Pausar</string>
+    <string name="action_short_resume">Reanudar</string>
+    <string name="action_short_logs">Logs</string>
+    <string name="action_short_clone">Clonar</string>
+    <string name="action_short_logging">Logging</string>
+    <string name="action_short_backup">Backup</string>
+    <string name="action_short_delete">Eliminar</string>
+    <string name="action_short_schedule">Programar</string>
+    <string name="action_short_copy">Copiar</string>
+    <string name="action_short_backup_all">Copiar todo</string>
+    <string name="action_short_restore_all">Restaurar todo</string>
+    <string name="action_short_restore">Restaurar</string>
+    <string name="action_short_access">Acceso</string>
+    <string name="action_short_logout">Cerrar sesión</string>
+    <string name="action_short_delete_all">Borrar todo</string>
+    <string name="action_short_view_log">Ver log</string>
+    <string name="remote_invalid_request">La solicitud no es válida.</string>
+    <string name="remote_operation_failed">La operación del servidor ha fallado.</string>
+    <string name="remote_auth_required">Configura la autenticación del servidor antes de conectar.</string>
+    <string name="remote_origin_rejected">El servidor ha rechazado el origen de la solicitud.</string>
+    <string name="remote_json_required">El servidor requiere una solicitud JSON.</string>
+    <string name="remote_payload_too_large">La solicitud supera el tamaño permitido.</string>
+    <string name="remote_access_denied">El servidor ha denegado el acceso.</string>
+    <string name="remote_not_found">No se ha encontrado el recurso solicitado.</string>
+    <string name="remote_unavailable">El servidor no está disponible.</string>
+    <string name="remote_execution_requested">Ejecución de la tarea solicitada</string>
+    <string name="remote_status_running">En ejecución</string>
+    <string name="remote_status_completed">Completada</string>
+    <string name="remote_status_failed">Fallida</string>
+    <string name="remote_status_unknown">Estado de ejecución desconocido</string>
+</resources>

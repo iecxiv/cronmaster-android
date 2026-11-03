@@ -7,18 +7,22 @@ import java.util.UUID
 internal data class ServerProfile(val id: String, val name: String, val url: String)
 internal data class ServerProfiles(val activeId: String?, val items: List<ServerProfile>)
 
+private fun requireProfile(condition: Boolean, stringId: Int) {
+    if (!condition) throw ClientTextException(stringId)
+}
+
 internal object ServerProfileDocument {
     fun requireId(id: String) {
-        require(Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").matches(id)) { "Identificador de servidor no válido" }
+        requireProfile(Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").matches(id), R.string.error_profile_id)
     }
     fun upgrade(saved: JSONObject?): JSONObject {
         if (saved == null) return JSONObject().put("profilesVersion", 1).put("activeId", JSONObject.NULL).put("profiles", JSONArray())
         if (saved.has("profilesVersion")) {
-            require(saved.getInt("profilesVersion") == 1) { "Formato de servidores no compatible" }
+            requireProfile(saved.getInt("profilesVersion") == 1, R.string.error_profile_format)
             snapshot(saved)
             return saved
         }
-        require(saved.optString("url").isNotBlank()) { "El acceso guardado no contiene un servidor válido" }
+        requireProfile(saved.optString("url").isNotBlank(), R.string.error_saved_server_url)
         val result = upgrade(null)
         save(result, null, saved)
         return result
@@ -29,12 +33,12 @@ internal object ServerProfileDocument {
             val entry = array.getJSONObject(index)
             val id = entry.getString("id").also { requireId(it) }
             val url = entry.getJSONObject("config").getString("url")
-            require(url.isNotBlank()) { "Servidor sin URL" }
+            requireProfile(url.isNotBlank(), R.string.error_server_without_url)
             ServerProfile(id, entry.optString("name").ifBlank { url }, url)
         }
-        require(items.map { it.id }.distinct().size == items.size) { "Identificadores de servidor duplicados" }
+        requireProfile(items.map { it.id }.distinct().size == items.size, R.string.error_duplicate_server_ids)
         val active = if (root.isNull("activeId")) null else root.getString("activeId")
-        require(if (items.isEmpty()) active == null else items.any { it.id == active }) { "Servidor activo no válido" }
+        requireProfile(if (items.isEmpty()) active == null else items.any { it.id == active }, R.string.error_active_server_invalid)
         return ServerProfiles(active, items)
     }
     private fun entry(root: JSONObject, id: String?): JSONObject? {
@@ -47,7 +51,7 @@ internal object ServerProfileDocument {
         return entry(root, target)?.getJSONObject("config")?.let { JSONObject(it.toString()) }
     }
     fun save(root: JSONObject, id: String?, config: JSONObject): String {
-        require(config.optString("url").isNotBlank()) { "Servidor sin URL" }
+        requireProfile(config.optString("url").isNotBlank(), R.string.error_server_without_url)
         val current = snapshot(root)
         val target = (id ?: current.activeId ?: UUID.randomUUID().toString()).also { requireId(it) }
         val existing = entry(root, target)
@@ -66,12 +70,12 @@ internal object ServerProfileDocument {
         return true
     }
     fun activate(root: JSONObject, id: String) {
-        require(entry(root, id) != null) { "El servidor ya no está guardado" }
+        requireProfile(entry(root, id) != null, R.string.error_server_not_saved)
         root.put("activeId", id)
     }
     fun rename(root: JSONObject, id: String, name: String) {
-        require(name.trim().length <= 64) { "El nombre no puede superar 64 caracteres" }
-        val target = entry(root, id) ?: error("El servidor ya no está guardado")
+        requireProfile(name.trim().length <= 64, R.string.error_name_too_long)
+        val target = entry(root, id) ?: throw ClientTextException(R.string.error_server_not_saved)
         target.put("name", name.trim().ifBlank { target.getJSONObject("config").getString("url") })
     }
     fun remove(root: JSONObject, id: String): Boolean {
