@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="terminal_close">Close terminal</string>
+    <string name="terminal_copy_output">Copy output</string>
+    <string name="terminal_decrease_text">Decrease text size</string>
+    <string name="terminal_increase_text">Increase text size</string>
+    <string name="terminal_follow_lines">Follow new lines</string>
+    <string name="terminal_wrap_lines">Wrap lines</string>
+    <string name="terminal_waiting_output">Waiting for output…</string>
+    <string name="terminal_empty_log">Empty log</string>
+    <string name="terminal_following_output">Following output</string>
+    <string name="terminal_free_reading">Free reading</string>
+    <plurals name="terminal_line_count">
+        <item quantity="one">%1$d line</item>
+        <item quantity="other">%1$d lines</item>
+    </plurals>
+</resources>
