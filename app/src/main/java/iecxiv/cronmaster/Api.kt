@@ -21,9 +21,10 @@ class Api(
     private val store: SecureStore,
     private val storageError: (String) -> Unit
 ) {
+    private fun localized(id: Int,vararg args: Any): String=store.resources.getString(id,*args)
     private val url=config.getString("url").trim().trimEnd('/').toHttpUrl().also {
-        require(it.username.isEmpty() && it.password.isEmpty() && it.query==null && it.fragment==null) { "URL sin credenciales, query ni fragmento" }
-        require(it.isHttps || config.optBoolean("http")) { "Usa HTTPS o autoriza HTTP explícitamente" }
+        require(it.username.isEmpty() && it.password.isEmpty() && it.query==null && it.fragment==null) { localized(R.string.api_url_without_credentials) }
+        require(it.isHttps || config.optBoolean("http")) { localized(R.string.api_https_required) }
     }
     private val token=config.optString("token")
     private val password=config.optString("password")
@@ -51,7 +52,7 @@ class Api(
                     }
                 }
                 if(persist) try { store.saveCookies(cookieSnapshot()) }
-                catch(e: Exception) { storageError("No se pudo persistir la cookie: ${e.message}") }
+                catch(e: Exception) { storageError(localized(R.string.api_cookie_persistence_failed,e.message.orEmpty())) }
             }
         }).build()
     fun cookieSnapshot(): JSONArray = synchronized(cookies) { JSONArray(cookies.filter { it.expiresAt>System.currentTimeMillis() }.map { it.toString() }) }
@@ -73,9 +74,9 @@ class Api(
                 try {
                     val result=response.use { r ->
                         val text=r.body?.string().orEmpty()
-                        val data=try { JSONObject(text) } catch(_: Exception) { obj("error" to "Respuesta no JSON; revisa la URL o el proxy") }
-                        if(!r.isSuccessful) throw HttpFailure(r.code,"HTTP ${r.code}: ${data.optString("message",data.optString("error"))}")
-                        check(data.optBoolean("success",true)) { data.optString("message",data.optString("error","Operación rechazada")) }
+                        val data=try { JSONObject(text) } catch(_: Exception) { obj("error" to localized(R.string.api_non_json_response)) }
+                        if(!r.isSuccessful) throw HttpFailure(r.code,localized(R.string.api_http_error,r.code,data.optString("message",data.optString("error"))))
+                        check(data.optBoolean("success",true)) { data.optString("message",data.optString("error",localized(R.string.api_operation_rejected))) }
                         data
                     }
                     if(cont.isActive) cont.resume(result)
@@ -84,7 +85,7 @@ class Api(
         })
     }
     suspend fun login() {
-        check(password.isNotBlank()) { "No hay contraseña guardada para renovar la sesión" }
+        check(password.isNotBlank()) { localized(R.string.api_password_missing) }
         raw("api/auth/login","POST",obj("password" to password))
     }
     suspend fun call(path: String,method: String="GET",payload: JSONObject?=null): JSONObject {
@@ -96,6 +97,7 @@ class Api(
         }
     }
     suspend fun native(op: String,args: JSONObject=JSONObject()): JSONObject = call("api/native","POST",obj("op" to op,"args" to args))
+    // These callback values are internal signals consumed by MainViewModel, not UI labels.
     fun events(onEvent: () -> Unit,onState: (String) -> Unit): EventSource {
         val streaming=client.newBuilder().readTimeout(0,TimeUnit.MILLISECONDS).build()
         return EventSources.createFactory(streaming).newEventSource(builder("api/events").header("Accept","text/event-stream").build(),object: EventSourceListener() {

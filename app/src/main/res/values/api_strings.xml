@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="api_url_without_credentials">URL sin credenciales, query ni fragmento</string>
+    <string name="api_https_required">Usa HTTPS o autoriza HTTP explícitamente</string>
+    <string name="api_cookie_persistence_failed">No se pudo persistir la cookie: %1$s</string>
+    <string name="api_non_json_response">Respuesta no JSON; revisa la URL o el proxy</string>
+    <string name="api_http_error">HTTP %1$d: %2$s</string>
+    <string name="api_operation_rejected">Operación rechazada</string>
+    <string name="api_password_missing">No hay contraseña guardada para renovar la sesión</string>
+</resources>
