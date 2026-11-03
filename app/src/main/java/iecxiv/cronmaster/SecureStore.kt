@@ -18,7 +18,13 @@ class SecureStore(context: Context, private val profileId: String? = null, priva
     internal val resources get() = app.resources
     private val prefs = app.getSharedPreferences("secure_session", Context.MODE_PRIVATE)
     private val alias = "iecxiv.cronmaster.session.v1"
-    init { if (profileId != null) ServerProfileDocument.requireId(profileId) }
+    private fun <T> localizedErrors(block: () -> T): T = try {
+        block()
+    } catch (e: ClientTextException) {
+        throw IllegalArgumentException(resources.getString(e.stringId), e)
+    }
+    private fun <T> locked(block: () -> T): T = synchronized(lock) { localizedErrors(block) }
+    init { if (profileId != null) localizedErrors { ServerProfileDocument.requireId(profileId) } }
     private fun key(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
         (store.getKey(alias, null) as? SecretKey)?.let { return it }
@@ -51,18 +57,18 @@ class SecureStore(context: Context, private val profileId: String? = null, priva
         if (saved != null && !saved.has("profilesVersion")) write(result)
         return result
     }
-    fun load(): JSONObject? = synchronized(lock) { ServerProfileDocument.load(document(), profileId) }
-    fun save(value: JSONObject) = synchronized(lock) {
+    fun load(): JSONObject? = locked { ServerProfileDocument.load(document(), profileId) }
+    fun save(value: JSONObject) = locked {
         val root = document()
         ServerProfileDocument.save(root, profileId, value)
         write(root)
     }
-    fun saveCookies(cookies: JSONArray): Unit = synchronized(lock) {
+    fun saveCookies(cookies: JSONArray): Unit = locked {
         val root = document()
-        if (expectedRevision != null && !profileRevisionMatches(ServerProfileDocument.load(root, profileId), expectedRevision)) return@synchronized
+        if (expectedRevision != null && !profileRevisionMatches(ServerProfileDocument.load(root, profileId), expectedRevision)) return@locked
         if (ServerProfileDocument.saveCookies(root, profileId, cookies)) write(root)
     }
-    internal fun saveProfile(value: JSONObject, name: String, makeActive: Boolean = true): String = synchronized(lock) {
+    internal fun saveProfile(value: JSONObject, name: String, makeActive: Boolean = true): String = locked {
         val root = document()
         val id = ServerProfileDocument.save(root, profileId, value)
         ServerProfileDocument.rename(root, id, name)
@@ -72,13 +78,13 @@ class SecureStore(context: Context, private val profileId: String? = null, priva
     }
     internal fun forProfile(id: String) = SecureStore(app, id)
     internal fun forSession(id: String, config: JSONObject) = SecureStore(app, id, config.optString("credential_revision", ""))
-    internal fun snapshot(): ServerProfiles = synchronized(lock) { ServerProfileDocument.snapshot(document()) }
-    internal fun activate(id: String) = synchronized(lock) {
+    internal fun snapshot(): ServerProfiles = locked { ServerProfileDocument.snapshot(document()) }
+    internal fun activate(id: String) = locked {
         val root = document()
         ServerProfileDocument.activate(root, id)
         write(root)
     }
-    internal fun rename(id: String, name: String) = synchronized(lock) {
+    internal fun rename(id: String, name: String) = locked {
         val root = document()
         ServerProfileDocument.rename(root, id, name)
         write(root)
@@ -89,7 +95,7 @@ class SecureStore(context: Context, private val profileId: String? = null, priva
         if (store.containsAlias(alias)) store.deleteEntry(alias)
     }
     // An unbound store clears all access; a bound store clears only its own profile.
-    fun clear(): Unit = synchronized(lock) {
+    fun clear(): Unit = locked {
         if (profileId == null) clearAll()
         else {
             val root = document()
