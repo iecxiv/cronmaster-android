@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="content_language">en</string>
+    <string name="action_short_run">Run</string>
+    <string name="action_short_edit">Edit</string>
+    <string name="action_short_pause">Pause</string>
+    <string name="action_short_resume">Resume</string>
+    <string name="action_short_logs">Logs</string>
+    <string name="action_short_clone">Clone</string>
+    <string name="action_short_logging">Logging</string>
+    <string name="action_short_backup">Backup</string>
+    <string name="action_short_delete">Delete</string>
+    <string name="action_short_schedule">Schedule</string>
+    <string name="action_short_copy">Copy</string>
+    <string name="action_short_backup_all">Back up all</string>
+    <string name="action_short_restore_all">Restore all</string>
+    <string name="action_short_restore">Restore</string>
+    <string name="action_short_access">Access</string>
+    <string name="action_short_logout">Sign out</string>
+    <string name="action_short_delete_all">Delete all</string>
+    <string name="action_short_view_log">View log</string>
+    <string name="remote_invalid_request">The request is invalid.</string>
+    <string name="remote_operation_failed">The server operation failed.</string>
+    <string name="remote_auth_required">Configure server authentication before connecting.</string>
+    <string name="remote_origin_rejected">The server rejected the request origin.</string>
+    <string name="remote_json_required">The server requires a JSON request.</string>
+    <string name="remote_payload_too_large">The request exceeds the allowed size.</string>
+    <string name="remote_access_denied">The server denied access.</string>
+    <string name="remote_not_found">The requested resource was not found.</string>
+    <string name="remote_unavailable">The server is unavailable.</string>
+    <string name="remote_execution_requested">Task execution requested</string>
+    <string name="remote_status_running">Running</string>
+    <string name="remote_status_completed">Completed</string>
+    <string name="remote_status_failed">Failed</string>
+    <string name="remote_status_unknown">Unknown execution status</string>
+</resources>
